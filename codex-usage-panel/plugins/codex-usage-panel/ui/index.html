@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Codex 用量预测</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8f7;
+      --surface: #ffffff;
+      --surface-muted: #f2f4f2;
+      --text: #18211c;
+      --subtle: #69736d;
+      --line: #e1e7e2;
+      --green: #168a52;
+      --green-soft: #e7f4ec;
+      --amber: #c58a12;
+      --amber-soft: #fff4d8;
+      --red: #d04b45;
+      --track: #e7eae8;
+      --shadow: 0 14px 36px rgba(19, 42, 28, 0.07);
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #121713;
+      --surface: #1a211c;
+      --surface-muted: #202923;
+      --text: #edf4ef;
+      --subtle: #a1ada5;
+      --line: #313b34;
+      --green: #62c98d;
+      --green-soft: #213c2c;
+      --amber: #ecc05b;
+      --amber-soft: #43371d;
+      --red: #ff8d7e;
+      --track: #333c36;
+      --shadow: 0 14px 36px rgba(0, 0, 0, 0.2);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      min-height: 100vh;
+    }
+    button { font: inherit; }
+    .page { max-width: 1080px; margin: 0 auto; padding: 40px 36px 32px; }
+    .topline { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 32px; }
+    .heading { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .mark {
+      width: 44px; height: 44px; border-radius: 14px; flex: 0 0 auto;
+      display: grid; place-items: center; color: var(--green); background: var(--green-soft);
+    }
+    .mark svg { width: 24px; height: 24px; }
+    h1 { margin: 0; font-size: 23px; line-height: 1.2; letter-spacing: -0.025em; }
+    .subtitle { margin: 5px 0 0; color: var(--subtle); font-size: 13px; }
+    .refresh {
+      border: 1px solid var(--line); background: var(--surface); color: var(--text);
+      border-radius: 10px; padding: 9px 13px; display: inline-flex; gap: 8px; align-items: center;
+      cursor: pointer; transition: border-color .15s, transform .15s;
+    }
+    .refresh:hover { border-color: var(--green); }
+    .refresh:active { transform: translateY(1px); }
+    .refresh:disabled { opacity: .55; cursor: wait; }
+    .refresh svg { width: 15px; height: 15px; }
+    .status {
+      display: flex; align-items: center; gap: 8px; color: var(--subtle);
+      margin: 0 0 16px; font-size: 12px;
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    .status.error .status-dot { background: var(--red); }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .card {
+      border: 1px solid var(--line); background: var(--surface); border-radius: 18px;
+      padding: 23px 24px 21px; box-shadow: var(--shadow); min-width: 0;
+    }
+    .card.disabled { box-shadow: none; }
+    .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .period { font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+    .window-note { color: var(--subtle); font-size: 12px; margin-top: 3px; }
+    .tag {
+      white-space: nowrap; color: var(--green); background: var(--green-soft);
+      border-radius: 999px; padding: 4px 9px; font-size: 11px; font-weight: 600;
+    }
+    .tag.warn { color: var(--amber); background: var(--amber-soft); }
+    .usage-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 25px 0 13px; }
+    .percent { font-variant-numeric: tabular-nums; font-size: 35px; font-weight: 650; line-height: 1; letter-spacing: -.05em; }
+    .percent-label { color: var(--subtle); font-size: 12px; margin-left: 7px; }
+    .remaining { color: var(--subtle); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .meter {
+      height: 13px; border-radius: 999px; background: var(--track); overflow: hidden;
+      position: relative; isolation: isolate; flex: 1 1 auto; min-width: 0;
+    }
+    .meter-row { display: flex; align-items: center; gap: 12px; }
+    .meter-current { position: absolute; inset-block: 0; left: 0; border-radius: inherit; }
+    .meter-current { z-index: 1; background: var(--green); }
+    .trend { margin-top: 22px; }
+    .trend-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
+    .trend-title { font-size: 12px; font-weight: 650; }
+    .trend-svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .chart-grid { stroke: var(--line); stroke-width: 1; }
+    .chart-limit { stroke: var(--subtle); stroke-width: 1.1; stroke-dasharray: 4 4; }
+    .chart-now { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; }
+    .chart-current { fill: none; stroke: var(--green); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-forecast { fill: none; stroke: var(--amber); stroke-width: 2.2; stroke-linecap: round; }
+    .chart-point-current { fill: var(--surface); stroke: var(--green); stroke-width: 2.2; }
+    .chart-point-forecast { fill: var(--surface); stroke: var(--amber); stroke-width: 2.2; }
+    .chart-pace-area { fill: var(--amber); opacity: .08; }
+    .chart-pace-edge { stroke: var(--amber); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .95; }
+    .chart-text { fill: var(--subtle); font-size: 10px; font-family: inherit; }
+    .chart-value { fill: var(--amber); font-size: 11px; font-weight: 700; font-family: inherit; }
+    .chart-axis-labels { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 6px 5px 0 48px; }
+    .axis-endpoint { display: grid; gap: 1px; min-width: 0; }
+    .axis-endpoint.end { text-align: right; }
+    .axis-caption { color: var(--subtle); font-size: 10px; line-height: 1.3; }
+    .axis-time { color: var(--text); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .trend-footer { display: flex; flex-wrap: nowrap; align-items: center; gap: 10px; min-width: 0; margin-top: 11px; padding: 8px 9px; border-radius: 9px; background: var(--surface-muted); }
+    .trend-legend { display: flex; flex: 1 1 auto; flex-wrap: nowrap; align-items: center; gap: 8px 10px; min-width: 0; overflow: hidden; color: var(--subtle); font-size: 11px; }
+    .trend-key { display: inline-flex; flex: 0 1 auto; align-items: center; gap: 5px; min-width: 0; white-space: nowrap; }
+    .trend-key > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .trend-key-line { width: 15px; height: 2px; border-radius: 2px; background: var(--green); }
+    .trend-key-line.forecast { background: var(--amber); }
+    .trend-key-band { width: 15px; height: 8px; border-top: 1.5px dashed var(--amber); border-bottom: 1.5px dashed var(--amber); background: color-mix(in srgb, var(--amber) 12%, transparent); }
+    .countdown-inline { display: inline-flex; flex: 0 0 auto; align-items: baseline; justify-content: flex-end; gap: 6px; white-space: nowrap; }
+    .detail-label { color: var(--subtle); font-size: 10px; }
+    .detail-value { color: var(--text); font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .empty-state { color: var(--subtle); padding: 28px 0 20px; font-size: 13px; }
+    .empty-state strong { display: block; color: var(--text); font-size: 14px; margin-bottom: 5px; }
+    .skeleton {
+      height: 190px; border-radius: 16px; background: linear-gradient(100deg, var(--surface-muted) 25%, var(--surface) 38%, var(--surface-muted) 60%);
+      background-size: 300% 100%; animation: shimmer 1.35s infinite;
+    }
+    @keyframes shimmer { to { background-position-x: -150%; } }
+    .footnote {
+      display: flex; align-items: flex-start; gap: 9px; margin: 17px 2px 0; color: var(--subtle); font-size: 11px;
+    }
+    .footnote svg { width: 14px; height: 14px; flex: 0 0 auto; margin-top: 1px; }
+    .error-box {
+      background: var(--surface); border: 1px solid color-mix(in srgb, var(--red) 30%, var(--line));
+      border-radius: 15px; padding: 20px; color: var(--subtle);
+    }
+    .error-box strong { display: block; color: var(--text); font-size: 15px; margin-bottom: 4px; }
+    .last-updated { color: var(--subtle); font-size: 11px; text-align: right; margin-top: 15px; }
+    @media (max-width: 700px) {
+      .page { padding: 24px 16px; }
+      .topline { align-items: flex-start; margin-bottom: 25px; }
+      .grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 19px; }
+      .percent { font-size: 32px; }
+    }
+    @media (max-width: 460px) {
+      .trend-footer { gap: 6px; padding: 7px; }
+      .trend-legend { gap: 6px; font-size: 9px; }
+      .trend-key { gap: 3px; }
+      .trend-key-line, .trend-key-band { width: 12px; }
+      .meter-row { gap: 8px; }
+      .countdown-inline { gap: 4px; }
+      .detail-label { font-size: 8px; }
+      .detail-value { font-size: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topline">
+      <div class="heading">
+        <div class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M5 16V11m7 5V5m7 11V8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M4 20h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".55"/>
+          </svg>
+        </div>
+        <div>
+          <h1>用量预测</h1>
+          <p class="subtitle">根据当前窗口的使用速度，估算重置前用量</p>
+        </div>
+      </div>
+      <button class="refresh" id="refresh" type="button" aria-label="刷新额度">
+        <svg id="refresh-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M16.3 9.2A6.4 6.4 0 0 0 5 5.1L3.8 6.3M3.8 6.3V2.9m0 3.4h3.4M3.7 10.8A6.4 6.4 0 0 0 15 14.9l1.2-1.2m0 0v3.4m0-3.4h-3.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span id="refresh-label">刷新</span>
+      </button>
+    </header>
+    <div class="status" id="status">
+      <span class="status-dot"></span>
+      <span id="status-text">正在连接本机 Codex…</span>
+    </div>
+    <section class="grid" id="grid" aria-live="polite">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </section>
+    <div class="footnote">
+      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="8" cy="8" r="6.3" stroke="currentColor" stroke-width="1.3"/>
+        <path d="M8 7.2v3.3m0-5.2h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span>合理消耗区间表示完整 5 小时窗口的额度预算：结合当前窗口覆盖时段的活动强度、本机近 14 天的活跃窗口频率与周剩余额度估算。数据仅在本机读取计算，不保存对话内容或上传。</span>
+    </div>
+    <div class="last-updated" id="last-updated"></div>
+  </main>
+  <script>
+    (function () {
+      var pending = new Map();
+      var nextId = 1;
+      var ready = false;
+      var snapshot = null;
+      var lastRefresh = null;
+      var refreshButton = document.getElementById("refresh");
+      var statusEl = document.getElementById("status");
+      var statusText = document.getElementById("status-text");
+      var grid = document.getElementById("grid");
+      var updatedEl = document.getElementById("last-updated");
+
+      function setTheme(context) {
+        var theme = context && context.theme;
+        if (theme === "dark" || theme === "light") document.documentElement.dataset.theme = theme;
+      }
+
+      function rpc(method, params) {
+        return new Promise(function (resolve, reject) {
+          var id = nextId++;
+          var timer = setTimeout(function () {
+            pending.delete(id);
+            reject(new Error("Codex 页面连接超时"));
+          }, 20000);
+          pending.set(id, {
+            resolve: function (result) { clearTimeout(timer); resolve(result); },
+            reject: function (error) { clearTimeout(timer); reject(error); }
+          });
+          window.parent.postMessage({ jsonrpc: "2.0", id: id, method: method, params: params || {} }, "*");
+        });
+      }
+
+      window.addEventListener("message", function (event) {
+        if (event.source !== window.parent) return;
+        var message = event.data;
+        if (!message || message.jsonrpc !== "2.0") return;
+        if (message.id != null && pending.has(message.id)) {
+          var handler = pending.get(message.id);
+          pending.delete(message.id);
+          if (message.error) handler.reject(new Error(message.error.message || "请求失败"));
+          else handler.resolve(message.result);
+          return;
+        }
+        if (message.method === "ui/notifications/host-context-changed") setTheme(message.params || {});
+        if (message.method === "ui/notifications/tool-result") {
+          var result = message.params && (message.params.result || message.params);
+          if (result && result.structuredContent) applySnapshot(result.structuredContent);
+        }
+      });
+
+      function dateTime(value) {
+        if (value == null || !Number.isFinite(Number(value))) return "暂无";
+        try {
+          var date = new Date(Number(value));
+          if (!Number.isFinite(date.getTime())) return "暂无";
+          return new Intl.DateTimeFormat("zh-CN", {
+            month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+          }).format(date);
+        } catch (_) {
+          return "暂无";
+        }
+      }
+
+      function countdown(minutes) {
+        if (minutes == null || !Number.isFinite(minutes)) return "暂无数据";
+        var seconds = Math.max(0, Math.round(minutes * 60));
+        var days = Math.floor(seconds / 86400);
+        var hours = Math.floor((seconds % 86400) / 3600);
+        var mins = Math.floor((seconds % 3600) / 60);
+        if (days > 0) return days + " 天 " + hours + " 小时";
+        if (hours > 0) return hours + " 小时 " + mins + " 分钟";
+        return mins + " 分钟";
+      }
+
+      function percent(value) {
+        if (value == null || !Number.isFinite(value)) return "暂不可预测";
+        return Math.round(value) + "%";
+      }
+
+      function smoothUsagePath(sourcePoints) {
+        var points = [];
+        sourcePoints.forEach(function (point, index) {
+          if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+          var next = { x: point.x, y: point.y, count: 1 };
+          var previous = points[points.length - 1];
+          if (previous && next.x - previous.x <= 0.01) {
+            previous.y = next.y;
+            previous.x = Math.max(previous.x, next.x);
+          } else if (previous && previous !== points[0] && index < sourcePoints.length - 1 && next.x - previous.x < 1.25) {
+            previous.y = (previous.y * previous.count + next.y) / (previous.count + 1);
+            previous.x = (previous.x * previous.count + next.x) / (previous.count + 1);
+            previous.count += 1;
+          } else {
+            points.push(next);
+          }
+        });
+        if (points.length < 2) return points.length ? "M " + points[0].x + " " + points[0].y : "";
+
+        var spans = [];
+        var secants = [];
+        for (var index = 0; index < points.length - 1; index += 1) {
+          var span = points[index + 1].x - points[index].x;
+          spans.push(span);
+          secants.push((points[index + 1].y - points[index].y) / span);
+        }
+
+        var slopes = new Array(points.length);
+        slopes[0] = secants[0];
+        slopes[points.length - 1] = secants[secants.length - 1];
+        for (var index = 1; index < points.length - 1; index += 1) {
+          var before = secants[index - 1];
+          var after = secants[index];
+          if (before === 0 || after === 0 || before * after < 0) {
+            slopes[index] = 0;
+          } else {
+            var w1 = 2 * spans[index] + spans[index - 1];
+            var w2 = spans[index] + 2 * spans[index - 1];
+            slopes[index] = (w1 + w2) / (w1 / before + w2 / after);
+          }
+        }
+
+        var path = "M " + points[0].x + " " + points[0].y;
+        for (var index = 0; index < spans.length; index += 1) {
+          var start = points[index];
+          var end = points[index + 1];
+          var span = spans[index];
+          path += " C " + (start.x + span / 3) + " " + (start.y + slopes[index] * span / 3) +
+            " " + (end.x - span / 3) + " " + (end.y - slopes[index + 1] * span / 3) +
+            " " + end.x + " " + end.y;
+        }
+        return path;
+      }
+
+      function meterMarkup(windowData) {
+        var current = Math.max(0, Math.min(100, windowData.usedPercent));
+        return '<div class="meter" role="img" aria-label="当前已用 ' + Math.round(windowData.usedPercent) + '%">' +
+          '<div class="meter-current" style="width:' + current + '%"></div></div>';
+      }
+
+      function trendMarkup(title, windowData) {
+        var left = 48;
+        var right = 414;
+        var top = 16;
+        var bottom = 126;
+        var width = right - left;
+        var height = bottom - top;
+        var duration = Number(windowData.windowDurationMins);
+        var resetsAt = windowData.resetsAt == null ? NaN : Number(windowData.resetsAt);
+        var startAt = Number.isFinite(resetsAt) && Number.isFinite(duration) ? resetsAt - duration * 60000 : null;
+        var startLabel = dateTime(startAt);
+        var endLabel = dateTime(resetsAt);
+        var isWeekly = duration >= 10080;
+        var startCaption = isWeekly ? "开始日期时间" : "开始时间";
+        var endCaption = isWeekly ? "结束日期时间" : "重置时间";
+        var remaining = windowData.remainingMinutes;
+        var elapsed = remaining == null ? null : duration - remaining;
+        var ratio = elapsed == null || !Number.isFinite(elapsed) ? 0 : Math.max(0, Math.min(1, elapsed / duration));
+        var nowX = left + width * ratio;
+        var current = Math.max(0, Number(windowData.usedPercent) || 0);
+        var forecast = windowData.forecastPercent;
+        var paceBand = title === "5 小时额度" && snapshot ? snapshot.weeklyPaceBand : null;
+        var paceStatus = title === "5 小时额度" && snapshot ? snapshot.weeklyPaceStatus : null;
+        var usageCurve = snapshot && snapshot.usageCurves ? snapshot.usageCurves[isWeekly ? "weekly" : "fiveHour"] : null;
+        var hasUsageCurve = usageCurve && usageCurve.sampleCount > 0 && Array.isArray(usageCurve.points);
+        var maxValue = 100;
+        function y(value) {
+          return bottom - Math.max(0, Math.min(maxValue, value)) / maxValue * height;
+        }
+        var ticks = [0, 50, 100];
+        var lines = "";
+        ticks.forEach(function (tick) {
+          var yPos = y(tick);
+          var cls = tick === 100 ? "chart-limit" : "chart-grid";
+          lines += '<line class="' + cls + '" x1="' + left + '" y1="' + yPos + '" x2="' + right + '" y2="' + yPos + '"></line>' +
+            '<text class="chart-text" x="5" y="' + (yPos + 3) + '">' + tick + '%</text>';
+        });
+        var currentY = y(current);
+        var paceBandMarkup = "";
+        var paceLegend = "";
+        if (paceBand && Number.isFinite(paceBand.lowPercent) && Number.isFinite(paceBand.highPercent)) {
+          var paceLow = Math.max(0, Math.min(maxValue, paceBand.lowPercent));
+          var paceHigh = Math.max(paceLow, Math.min(maxValue, paceBand.highPercent));
+          var paceTop = y(paceHigh);
+          var paceBottom = y(paceLow);
+          paceBandMarkup = '<rect class="chart-pace-area" x="' + left + '" y="' + paceTop + '" width="' + width + '" height="' + Math.max(1, paceBottom - paceTop) + '"></rect>' +
+            '<line class="chart-pace-edge" x1="' + left + '" y1="' + paceTop + '" x2="' + right + '" y2="' + paceTop + '"></line>' +
+            '<line class="chart-pace-edge" x1="' + left + '" y1="' + paceBottom + '" x2="' + right + '" y2="' + paceBottom + '"></line>';
+          var paceLowLabel = percent(Math.floor(paceBand.lowPercent));
+          var paceHighLabel = percent(Math.ceil(paceBand.highPercent));
+          var paceLegendText = '合理消耗区间 ' + paceLowLabel + (paceLowLabel === paceHighLabel ? '' : '–' + paceHighLabel);
+          var paceLegendTitle = '该范围是一个完整5小时窗口的额度预算，不是重置前剩余可用量。预算会按这个完整窗口所处时段的活动强度调整，再结合本机近14天的活跃窗口频率、日内时段分布与周剩余额度估算；周几不参与，也不会因临近重置而缩小。若当前已用高于范围，表示本窗口用量已超过分配预算。';
+          paceLegend = '<span class="trend-key" title="' + paceLegendTitle + '"><i class="trend-key-band"></i><span>' + paceLegendText + '</span></span>';
+        } else if (paceStatus && paceStatus.message) {
+          paceLegend = '<span class="trend-key" title="' + paceStatus.message + '"><span>合理消耗区间 · 暂不可用</span></span>';
+        }
+        var forecastPath = "";
+        var forecastMarker = "";
+        if (forecast != null) {
+          var forecastY = y(forecast);
+          forecastPath = '<path class="chart-forecast" d="M ' + nowX + ' ' + currentY + ' L ' + right + ' ' + forecastY + '"></path>';
+          forecastMarker = '<circle class="chart-point-forecast" cx="' + right + '" cy="' + forecastY + '" r="4.4"></circle>' +
+            '<text class="chart-value" x="' + (right - 1) + '" y="' + Math.max(10, forecastY - 8) + '" text-anchor="end">' + percent(forecast) + '</text>';
+        }
+        var actualPoints = [];
+        if (hasUsageCurve) {
+          usageCurve.points.forEach(function (point) {
+            var pointRatio = Math.max(0, Math.min(1, (Number(point.timestamp) - startAt) / (duration * 60000)));
+            actualPoints.push({ x: left + width * pointRatio, y: y(point.usedPercent) });
+          });
+        } else {
+          actualPoints.push({ x: left, y: bottom }, { x: nowX, y: currentY });
+        }
+        var actualD = smoothUsagePath(actualPoints);
+        var actualPath = '<path class="chart-current" d="' + actualD + '"></path>';
+        var usageLegend = hasUsageCurve ? '历史用量' : '当前窗口均速回推';
+        var usageDescription = hasUsageCurve ? '历史限额快照曲线' : '当前窗口均速回推';
+        var nowLine = '<line class="chart-now" x1="' + nowX + '" y1="' + top + '" x2="' + nowX + '" y2="' + bottom + '"></line>';
+        return '<div class="trend"><div class="trend-head"><span class="trend-title">用量走势</span></div>' +
+          '<svg class="trend-svg" viewBox="0 0 420 132" role="img" aria-label="' + title + '额度走势，当前已用 ' +
+          percent(current) + '，绿色线为' + usageDescription + '，重置前预计 ' + percent(forecast) + '">' +
+          lines + paceBandMarkup + nowLine + actualPath + forecastPath +
+          '<circle class="chart-point-current" cx="' + nowX + '" cy="' + currentY + '" r="4.4"></circle>' + forecastMarker +
+          '</svg><div class="chart-axis-labels"><span class="axis-endpoint"><span class="axis-caption">' + startCaption +
+          '</span><time class="axis-time">' + startLabel + '</time></span><span class="axis-endpoint end"><span class="axis-caption">' +
+          endCaption + '</span><time class="axis-time">' + endLabel + '</time></span></div>' +
+          '<div class="trend-footer"><div class="trend-legend"><span class="trend-key"><i class="trend-key-line"></i><span>' + usageLegend + '</span></span>' +
+          '<span class="trend-key"><i class="trend-key-line forecast"></i><span>按均速预测</span></span>' + paceLegend + '</div></div></div>';
+      }
+
+      function makeCard(title, subtitle, data) {
+        if (!data) {
+          return '<article class="card disabled"><div class="card-head"><div><div class="period">' + title +
+            '</div><div class="window-note">' + subtitle + '</div></div><span class="tag warn">额度未提供</span></div>' +
+            '<div class="empty-state"><strong>当前账号没有返回此窗口</strong>这项额度在本机 Codex 快照中不可用。</div></article>';
+        }
+        var forecast = data.forecastPercent;
+        var tagClass = forecast != null && forecast >= 100 ? "tag warn" : "tag";
+        var tagText = forecast == null ? "重置时余量估算中" :
+          (forecast >= 100 ? "重置前预计用尽" : "重置时余量 " + percent(Math.max(0, 100 - forecast)));
+        var tagTitle = forecast == null ? (data.forecastNote || "当前用量样本不足，暂时无法估算重置时余量") :
+          (forecast >= 100 ? "按当前窗口平均用量速度外推，预计额度会在重置前用尽。" :
+            "按当前窗口平均用量速度外推，到额度重置时预计还剩 " + percent(Math.max(0, 100 - forecast)) + "。");
+        return '<article class="card"><div class="card-head"><div><div class="period">' + title +
+          '</div><div class="window-note">' + subtitle + '</div></div><span class="' + tagClass + '" title="' + tagTitle + '">' + tagText + '</span></div>' +
+          '<div class="usage-row"><div><span class="percent">' + percent(data.usedPercent) +
+          '</span><span class="percent-label">已使用</span></div><div class="remaining">剩余 ' + percent(Math.max(0, 100 - data.usedPercent)) + '</div></div>' +
+          '<div class="meter-row">' + meterMarkup(data) +
+          '<div class="countdown-inline"><span class="detail-label">距重置</span><time class="detail-value" data-countdown="' +
+          (data.remainingMinutes == null ? "" : data.remainingMinutes) + '">' + countdown(data.remainingMinutes) + '</time></div></div>' +
+          trendMarkup(title, data) + '</article>';
+      }
+
+      function applySnapshot(data) {
+        if (!data || !data.windows) return;
+        snapshot = data;
+        lastRefresh = new Date(data.sampledAt || Date.now());
+        var five = data.windows.fiveHour;
+        var weekly = data.windows.weekly;
+        grid.innerHTML = makeCard("5 小时额度", "滚动窗口 · 300 分钟", five) +
+          makeCard("周额度", "滚动窗口 · 7 天", weekly);
+        statusEl.classList.remove("error");
+        statusText.textContent = "数据来自本机 Codex · " + (data.timezone || "本地时区");
+        updatedEl.textContent = "最后刷新 " + new Intl.DateTimeFormat("zh-CN", {
+          hour: "2-digit", minute: "2-digit", second: "2-digit"
+        }).format(lastRefresh);
+      }
+
+      function showError() {
+        statusEl.classList.add("error");
+        statusText.textContent = "刷新失败";
+        grid.innerHTML = '<div class="error-box" style="grid-column:1/-1"><strong>无法读取 Codex 用量</strong>' +
+          '请确认 Codex 已登录，然后点“刷新”重试。<br><span style="font-size:11px">本机额度接口没有返回快照。</span></div>';
+      }
+
+      async function refresh() {
+        if (!ready || refreshButton.disabled) return;
+        refreshButton.disabled = true;
+        document.getElementById("refresh-label").textContent = "更新中";
+        try {
+          var result = await rpc("tools/call", { name: "usage.read", arguments: {} });
+          if (!result || result.isError) throw new Error("本机额度读取失败");
+          applySnapshot(result.structuredContent);
+        } catch (error) {
+          if (!snapshot) showError(error);
+          else {
+            statusEl.classList.add("error");
+            statusText.textContent = "刷新失败 · 显示上次快照";
+          }
+        } finally {
+          refreshButton.disabled = false;
+          document.getElementById("refresh-label").textContent = "刷新";
+        }
+      }
+
+      refreshButton.addEventListener("click", refresh);
+      setInterval(function () {
+        var nodes = document.querySelectorAll("[data-countdown]");
+        nodes.forEach(function (node) {
+          var base = Number(node.dataset.countdown);
+          if (!Number.isFinite(base)) return;
+          var elapsed = lastRefresh ? (Date.now() - lastRefresh.getTime()) / 60000 : 0;
+          node.textContent = countdown(Math.max(0, base - elapsed));
+        });
+      }, 1000);
+
+      async function start() {
+        try {
+          var context = await rpc("ui/initialize", {
+            appCapabilities: {},
+            appInfo: { name: "codex-usage-panel", version: "0.1.29" },
+            protocolVersion: "2025-11-25"
+          });
+          ready = true;
+          setTheme(context && context.hostContext);
+          window.parent.postMessage({ jsonrpc: "2.0", method: "ui/notifications/initialized" }, "*");
+          if (!snapshot) await refresh();
+          setInterval(function () {
+            if (!document.hidden) refresh();
+          }, 120000);
+        } catch (error) {
+          showError(error);
+        }
+      }
+      start();
+    })();
+  </script>
+</body>
+</html>

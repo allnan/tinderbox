@@ -1,0 +1,34 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "codex-usage-panel",
+  "version": "0.1.29",
+  "description": "在 Codex 侧边栏查看本机账号的 5 小时与周额度、重置时间和线性用量预测。",
+  "author": {
+    "name": "JoeJoestar"
+  },
+  "keywords": [
+    "Codex",
+    "usage",
+    "quota",
+    "forecast"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Codex 用量预测",
+        "shortDescription": "查看 5 小时和周额度预测",
+        "longDescription": "在 Codex 主侧边栏打开独立页面，显示 5 小时和周额度的已用比例、重置倒计时与本窗口均速预测。额度快照仅在本机读取和计算。",
+        "developerName": "JoeJoestar",
+        "category": "Productivity",
+        "capabilities": [
+          "Interactive"
+        ],
+        "logo": "./assets/quota-gauge.svg",
+        "composerIcon": "./assets/quota-gauge.svg",
+        "defaultPrompt": "打开 Codex 用量预测页面。",
+        "brandColor": "#168A52"
+      },
+      "requires_local_executor": true
+    }
+  }
+}

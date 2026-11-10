@@ -1,0 +1,24 @@
+{
+  "name": "codex-local-tools",
+  "interface": {
+    "displayName": "本机工具"
+  },
+  "plugins": [
+    {
+      "name": "codex-usage-panel",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex-usage-panel"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity",
+      "interface": {
+        "displayName": "Codex 用量预测",
+        "shortDescription": "查看 5 小时和周额度预测"
+      }
+    }
+  ]
+}

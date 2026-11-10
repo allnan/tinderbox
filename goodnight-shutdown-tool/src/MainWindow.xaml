@@ -1,0 +1,352 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="晚安 · 定时关机" Width="860" Height="640"
+        WindowStyle="None" ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen"
+        Background="#F6F8FA" FontFamily="Microsoft YaHei UI, Segoe UI" FontSize="13"
+        Foreground="#203533" UseLayoutRounding="True" SnapsToDevicePixels="True">
+  <Window.Resources>
+    <SolidColorBrush x:Key="Accent" Color="#137C72"/>
+    <SolidColorBrush x:Key="Muted" Color="#758582"/>
+    <Style x:Key="FocusRing" TargetType="Control">
+      <Setter Property="Template"><Setter.Value><ControlTemplate>
+        <Border Margin="-3" CornerRadius="10" BorderThickness="2" BorderBrush="#67BAAC"/>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="BaseButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="#344C48"/>
+      <Setter Property="Background" Value="White"/>
+      <Setter Property="BorderBrush" Value="#E2EAE7"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="14,8"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+      <Setter Property="Template"><Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Grid>
+            <Border x:Name="Surface" CornerRadius="9" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+              <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+            </Border>
+            <Border x:Name="Hover" IsHitTestVisible="False" CornerRadius="9" Background="#0D137C72" Opacity="0"/>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Hover" Property="Opacity" Value="1"/></Trigger>
+            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Opacity" Value="0.72"/></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Surface" Property="Opacity" Value="0.42"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value></Setter>
+    </Style>
+    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
+      <Setter Property="Background" Value="#137C72"/><Setter Property="Foreground" Value="White"/>
+      <Setter Property="BorderThickness" Value="0"/><Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="FontSize" Value="14"/><Setter Property="Height" Value="46"/>
+    </Style>
+    <Style x:Key="TextButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
+      <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Foreground" Value="#667C75"/><Setter Property="FontSize" Value="11"/>
+      <Setter Property="Padding" Value="9,6"/>
+    </Style>
+    <Style x:Key="CaptionButton" TargetType="Button" BasedOn="{StaticResource TextButton}">
+      <Setter Property="Width" Value="38"/><Setter Property="Height" Value="32"/>
+      <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/><Setter Property="FontSize" Value="11"/>
+    </Style>
+    <Style x:Key="Segment" TargetType="RadioButton">
+      <Setter Property="Cursor" Value="Hand"/><Setter Property="Foreground" Value="#71837C"/>
+      <Setter Property="FontSize" Value="13"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RadioButton">
+        <Border x:Name="SegmentSurface" Margin="3" CornerRadius="7" Background="Transparent" BorderBrush="Transparent" BorderThickness="1">
+          <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsChecked" Value="True">
+            <Setter TargetName="SegmentSurface" Property="Background" Value="White"/>
+            <Setter TargetName="SegmentSurface" Property="BorderBrush" Value="#E0E8E4"/>
+            <Setter Property="Foreground" Value="#126F65"/><Setter Property="FontWeight" Value="SemiBold"/>
+          </Trigger>
+          <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#137C72"/></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter TargetName="SegmentSurface" Property="Opacity" Value="0.55"/></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="InputField" TargetType="TextBox">
+      <Setter Property="Background" Value="#F3F6F5"/><Setter Property="BorderBrush" Value="#E3EBE7"/>
+      <Setter Property="BorderThickness" Value="1"/><Setter Property="Foreground" Value="#213D36"/>
+      <Setter Property="Padding" Value="8,10"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/><Setter Property="CaretBrush" Value="#137C72"/>
+      <Setter Property="SelectionBrush" Value="#6EC6B5"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
+        <Border x:Name="InputSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9">
+          <ScrollViewer x:Name="PART_ContentHost"/>
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsKeyboardFocusWithin" Value="True">
+            <Setter TargetName="InputSurface" Property="BorderBrush" Value="#137C72"/>
+            <Setter TargetName="InputSurface" Property="Background" Value="White"/>
+          </Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter TargetName="InputSurface" Property="Opacity" Value="0.50"/></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="NumberField" TargetType="TextBox" BasedOn="{StaticResource InputField}">
+      <Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="FontSize" Value="32"/>
+      <Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Height" Value="68"/>
+      <Setter Property="MaxLength" Value="2"/>
+    </Style>
+    <Style x:Key="SmallNumber" TargetType="TextBox" BasedOn="{StaticResource NumberField}">
+      <Setter Property="Height" Value="54"/><Setter Property="FontSize" Value="24"/><Setter Property="Padding" Value="8,5"/>
+    </Style>
+    <Style x:Key="PresetButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
+      <Setter Property="Padding" Value="4,5"/><Setter Property="Height" Value="30"/>
+      <Setter Property="FontSize" Value="11"/><Setter Property="Background" Value="#FAFCFB"/>
+    </Style>
+    <Style x:Key="ModernCalendarDay" TargetType="CalendarDayButton">
+      <Setter Property="FontSize" Value="12"/><Setter Property="Foreground" Value="#314C43"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CalendarDayButton">
+        <Border x:Name="Day" Margin="1" Padding="5" Background="Transparent" CornerRadius="5">
+          <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Day" Property="Background" Value="#E7F4EF"/></Trigger>
+          <Trigger Property="IsSelected" Value="True"><Setter TargetName="Day" Property="Background" Value="#137C72"/><Setter Property="Foreground" Value="White"/></Trigger>
+          <Trigger Property="IsInactive" Value="True"><Setter Property="Foreground" Value="#ACB8B2"/></Trigger>
+          <Trigger Property="IsBlackedOut" Value="True"><Setter Property="Foreground" Value="#C9D2CE"/></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="#C9D2CE"/></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="ModernCalendar" TargetType="Calendar">
+      <Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#DFE8E3"/>
+      <Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="10"/>
+      <Setter Property="CalendarDayButtonStyle" Value="{StaticResource ModernCalendarDay}"/>
+    </Style>
+    <Style TargetType="DatePickerTextBox" BasedOn="{StaticResource InputField}">
+      <Setter Property="FontSize" Value="14"/><Setter Property="Padding" Value="12,9"/>
+      <Setter Property="HorizontalContentAlignment" Value="Left"/><Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <Style x:Key="ModernDatePicker" TargetType="DatePicker">
+      <Setter Property="SelectedDateFormat" Value="Short"/><Setter Property="Height" Value="40"/>
+      <Setter Property="CalendarStyle" Value="{StaticResource ModernCalendar}"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="DatePicker">
+        <Grid x:Name="PART_Root">
+          <Border x:Name="DateSurface" CornerRadius="8" Background="#F3F6F5" BorderBrush="#E3EBE7" BorderThickness="1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="40"/></Grid.ColumnDefinitions>
+              <DatePickerTextBox x:Name="PART_TextBox" Focusable="True"/>
+              <Button x:Name="PART_Button" Grid.Column="1" Style="{StaticResource TextButton}" FontFamily="Segoe MDL2 Assets" FontSize="16" Content="&#xE787;" ToolTip="选择日期" AutomationProperties.Name="打开日期选择器"/>
+            </Grid>
+          </Border>
+          <Popup x:Name="PART_Popup" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"/>
+        </Grid>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="DateSurface" Property="BorderBrush" Value="#137C72"/></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter TargetName="DateSurface" Property="Opacity" Value="0.5"/></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="ThinProgress" TargetType="ProgressBar">
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ProgressBar">
+        <Grid x:Name="PART_Track" Background="#315652" ClipToBounds="True">
+          <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="#6BCEB5" CornerRadius="2"/>
+        </Grid>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+  </Window.Resources>
+  <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
+    <Grid x:Name="RootSurface" Width="860" Height="640" Background="#F6F8FA" TextOptions.TextFormattingMode="Display">
+      <Grid.RowDefinitions><RowDefinition Height="86"/><RowDefinition/><RowDefinition Height="44"/></Grid.RowDefinitions>
+      <Grid x:Name="TitleBar" Background="Transparent">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="30,0,0,0">
+          <Border Width="42" Height="42" Background="#137C72" CornerRadius="12">
+            <Viewbox Width="23" Height="23"><Grid Width="24" Height="24">
+              <Path Data="M 7,4.8 A 8.5,8.5 0 1 0 17,4.8" Stroke="White" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+              <Path Data="M 12,2 L 12,12" Stroke="White" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+            </Grid></Viewbox>
+          </Border>
+          <StackPanel Margin="13,0,0,0" VerticalAlignment="Center">
+            <TextBlock Text="晚安" FontSize="21" FontWeight="SemiBold" Foreground="#1F3932"/>
+            <TextBlock Text="定时关机，让今天准时收尾。" FontSize="11" Foreground="#7A8B84" Margin="0,3,0,0"/>
+          </StackPanel>
+          <Border x:Name="DemoBadge" Visibility="Collapsed" Background="#FEEDCD" CornerRadius="5" Padding="8,4" Margin="18,0,0,0" VerticalAlignment="Center">
+            <TextBlock Text="演示模式 · 不会关机" FontSize="10" Foreground="#855C14"/>
+          </Border>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,8,0">
+          <Button x:Name="MinimizeButton" Style="{StaticResource CaptionButton}" Content="&#xE921;" ToolTip="最小化" AutomationProperties.Name="最小化"/>
+          <Button x:Name="CloseButton" Style="{StaticResource CaptionButton}" Content="&#xE8BB;" ToolTip="关闭" AutomationProperties.Name="关闭窗口"/>
+        </StackPanel>
+      </Grid>
+      <Grid Grid.Row="1" Margin="30,3,30,12">
+        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="18"/><ColumnDefinition Width="292"/></Grid.ColumnDefinitions>
+        <Border Background="White" CornerRadius="16" BorderBrush="#E7EDE9" BorderThickness="1" Padding="23,21">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="26"/><RowDefinition Height="56"/><RowDefinition Height="170"/>
+              <RowDefinition Height="34"/><RowDefinition Height="68"/><RowDefinition/>
+            </Grid.RowDefinitions>
+            <Grid><TextBlock x:Name="EditorHeading" Text="设定关机时间" FontSize="19" FontWeight="SemiBold"/>
+              <Border x:Name="ActiveBadge" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Center" CornerRadius="5" Background="#EAF6F0" Padding="7,3">
+                <TextBlock Text="计划生效中" FontSize="10" Foreground="#137C72"/>
+              </Border>
+            </Grid>
+            <Border Grid.Row="1" Background="#F0F4F2" CornerRadius="9" Height="42" VerticalAlignment="Bottom">
+              <UniformGrid Columns="2">
+                <RadioButton x:Name="CountdownModeButton" GroupName="Mode" IsChecked="True" Style="{StaticResource Segment}" Content="倒计时"/>
+                <RadioButton x:Name="SpecificModeButton" GroupName="Mode" Style="{StaticResource Segment}" Content="指定时间"/>
+              </UniformGrid>
+            </Border>
+            <Grid Grid.Row="2" Margin="0,19,0,0">
+              <StackPanel x:Name="CountdownPanel">
+                <Grid>
+                  <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="24"/><ColumnDefinition/><ColumnDefinition Width="24"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                  <StackPanel><TextBlock Text="小时" Foreground="#7A8B84" FontSize="11" Margin="3,0,0,7"/>
+                    <TextBox x:Name="DurationHours" Text="00" MaxLength="3" Style="{StaticResource NumberField}" AutomationProperties.Name="倒计时小时"/>
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Text=":" FontSize="26" Foreground="#A5B4AC" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,17,0,0"/>
+                  <StackPanel Grid.Column="2"><TextBlock Text="分钟" Foreground="#7A8B84" FontSize="11" Margin="3,0,0,7"/>
+                    <TextBox x:Name="DurationMinutes" Text="30" Style="{StaticResource NumberField}" AutomationProperties.Name="倒计时分钟"/>
+                  </StackPanel>
+                  <TextBlock Grid.Column="3" Text=":" FontSize="26" Foreground="#A5B4AC" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,17,0,0"/>
+                  <StackPanel Grid.Column="4"><TextBlock Text="秒" Foreground="#7A8B84" FontSize="11" Margin="3,0,0,7"/>
+                    <TextBox x:Name="DurationSeconds" Text="00" Style="{StaticResource NumberField}" AutomationProperties.Name="倒计时秒"/>
+                  </StackPanel>
+                </Grid>
+                <UniformGrid Columns="4" Margin="-3,15,-3,0">
+                  <Button x:Name="Preset15" Content="15 分钟" Style="{StaticResource PresetButton}" Margin="3,0"/>
+                  <Button x:Name="Preset30" Content="30 分钟" Style="{StaticResource PresetButton}" Margin="3,0"/>
+                  <Button x:Name="Preset60" Content="1 小时" Style="{StaticResource PresetButton}" Margin="3,0"/>
+                  <Button x:Name="Preset120" Content="2 小时" Style="{StaticResource PresetButton}" Margin="3,0"/>
+                </UniformGrid>
+              </StackPanel>
+              <StackPanel x:Name="SpecificPanel" Visibility="Collapsed">
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="53"/><ColumnDefinition Width="53"/></Grid.ColumnDefinitions>
+                  <DatePicker x:Name="TargetDate" Style="{StaticResource ModernDatePicker}" AutomationProperties.Name="关机日期"/>
+                  <Button x:Name="TodayButton" Grid.Column="1" Content="今天" Style="{StaticResource TextButton}" FontSize="12" Margin="3,0,0,0"/>
+                  <Button x:Name="TomorrowButton" Grid.Column="2" Content="明天" Style="{StaticResource TextButton}" FontSize="12"/>
+                </Grid>
+                <Grid Margin="0,10,0,0">
+                  <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="24"/><ColumnDefinition/><ColumnDefinition Width="24"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                  <StackPanel><TextBlock Text="时 · 24 小时制" FontSize="10" Foreground="#7A8B84" Margin="2,0,0,5"/>
+                    <TextBox x:Name="SpecificHours" Text="23" Style="{StaticResource SmallNumber}" AutomationProperties.Name="关机小时"/>
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Text=":" FontSize="22" Foreground="#A5B4AC" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,12"/>
+                  <StackPanel Grid.Column="2"><TextBlock Text="分" FontSize="10" Foreground="#7A8B84" Margin="2,0,0,5"/>
+                    <TextBox x:Name="SpecificMinutes" Text="00" Style="{StaticResource SmallNumber}" AutomationProperties.Name="关机分钟"/>
+                  </StackPanel>
+                  <TextBlock Grid.Column="3" Text=":" FontSize="22" Foreground="#A5B4AC" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,12"/>
+                  <StackPanel Grid.Column="4"><TextBlock Text="秒" FontSize="10" Foreground="#7A8B84" Margin="2,0,0,5"/>
+                    <TextBox x:Name="SpecificSeconds" Text="00" Style="{StaticResource SmallNumber}" AutomationProperties.Name="关机秒"/>
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Grid>
+            <TextBlock x:Name="FeedbackText" Grid.Row="3" FontSize="11" Foreground="#7A8B84" TextWrapping="Wrap" VerticalAlignment="Center"/>
+            <Border Grid.Row="4" Background="#FFF8EB" CornerRadius="9" Padding="12,10" Margin="0,9,0,1">
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="23"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <TextBlock Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" Foreground="#A7792A" FontSize="15" Margin="0,2,0,0"/>
+                <StackPanel Grid.Column="1"><TextBlock Text="强制关机始终开启" FontWeight="SemiBold" FontSize="11" Foreground="#9B7029"/>
+                  <TextBlock Text="到时关闭全部应用，未保存的内容可能丢失。" FontSize="10" Foreground="#A38650" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+              </Grid>
+            </Border>
+            <Button x:Name="ActionButton" Grid.Row="5" Content="开始倒计时" Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" Margin="0,14,0,0"/>
+          </Grid>
+        </Border>
+        <Border Grid.Column="2" CornerRadius="16" ClipToBounds="True">
+          <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#153D39" Offset="0"/><GradientStop Color="#112D2D" Offset="1"/></LinearGradientBrush></Border.Background>
+          <Grid>
+            <Grid Margin="23,24">
+              <Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="32"/><RowDefinition Height="22"/><RowDefinition Height="106"/><RowDefinition Height="52"/><RowDefinition Height="22"/><RowDefinition Height="65"/><RowDefinition Height="24"/><RowDefinition/></Grid.RowDefinitions>
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                <Ellipse x:Name="StatusDot" Fill="#82AF9F" Width="6" Height="6" Margin="0,1,7,0"/>
+                <TextBlock x:Name="StatusText" Text="时间预览 · 尚未启动" Foreground="#BDD7CA" FontSize="11"/>
+              </StackPanel>
+              <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" Foreground="#A5C6B7" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock x:Name="CountdownLabel" Text="剩余时长" Foreground="#B7D5C5" FontSize="13"/>
+              </StackPanel>
+              <Grid x:Name="DurationDigits" Grid.Row="3" Margin="-3,14,-3,0" AutomationProperties.Name="剩余时长">
+                <Grid.ColumnDefinitions><ColumnDefinition x:Name="DaysColumn" Width="0"/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <Border x:Name="RemainingDaysGroup" Visibility="Collapsed" Background="#0BFFFFFF" CornerRadius="10" Margin="3,0" Padding="3,10">
+                  <StackPanel VerticalAlignment="Center"><TextBlock x:Name="RemainingDays" Text="1" FontFamily="Segoe UI" FontSize="30" FontWeight="Medium" Foreground="#F3FFF7" HorizontalAlignment="Center"/>
+                    <TextBlock Text="天" FontSize="11" Foreground="#A6C5B6" HorizontalAlignment="Center" Margin="0,7,0,0"/>
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Background="#0BFFFFFF" CornerRadius="10" Margin="3,0" Padding="3,10">
+                  <StackPanel VerticalAlignment="Center"><TextBlock x:Name="RemainingHours" Text="00" FontFamily="Segoe UI" FontSize="36" FontWeight="Medium" Foreground="#9EBDAD" HorizontalAlignment="Center"/>
+                    <TextBlock Text="小时" FontSize="11" Foreground="#A6C5B6" HorizontalAlignment="Center" Margin="0,7,0,0"/>
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Background="#0BFFFFFF" CornerRadius="10" Margin="3,0" Padding="3,10">
+                  <StackPanel VerticalAlignment="Center"><TextBlock x:Name="RemainingMinutes" Text="30" FontFamily="Segoe UI" FontSize="36" FontWeight="Medium" Foreground="#F3FFF7" HorizontalAlignment="Center"/>
+                    <TextBlock Text="分钟" FontSize="11" Foreground="#A6C5B6" HorizontalAlignment="Center" Margin="0,7,0,0"/>
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="3" Background="#0BFFFFFF" CornerRadius="10" Margin="3,0" Padding="3,10">
+                  <StackPanel VerticalAlignment="Center"><TextBlock x:Name="RemainingSeconds" Text="00" FontFamily="Segoe UI" FontSize="36" FontWeight="Medium" Foreground="#F3FFF7" HorizontalAlignment="Center"/>
+                    <TextBlock Text="秒" FontSize="11" Foreground="#A6C5B6" HorizontalAlignment="Center" Margin="0,7,0,0"/>
+                  </StackPanel>
+                </Border>
+              </Grid>
+              <Border Grid.Row="4" Height="1" Background="#2B5147" VerticalAlignment="Center"/>
+              <StackPanel Grid.Row="5" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" Foreground="#A5C6B7" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="关机时刻" Foreground="#B7D5C5" FontSize="13"/>
+              </StackPanel>
+              <Viewbox Grid.Row="6" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock x:Name="TargetText" Text="23:30" FontFamily="Segoe UI" FontSize="48" FontWeight="Light" Foreground="#F3FFF7"/>
+                  <TextBlock x:Name="TargetSecondsText" Visibility="Collapsed" Text=":00" FontFamily="Segoe UI" FontSize="22" Foreground="#B6D6C4" VerticalAlignment="Bottom" Margin="4,0,0,9"/>
+                </StackPanel>
+              </Viewbox>
+              <StackPanel Grid.Row="7" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock x:Name="TargetDayText" Text="今天" Foreground="#C9E8D5" FontSize="12"/>
+                <Border x:Name="TargetDateSeparator" Width="1" Height="10" Background="#71977E" Margin="10,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="TargetDateText" Foreground="#9CBCAA" FontSize="12"/>
+              </StackPanel>
+              <Grid Grid.Row="8">
+                <ProgressBar x:Name="CountdownProgress" Visibility="Collapsed" Style="{StaticResource ThinProgress}" Height="3" Minimum="0" Maximum="100" Value="100" VerticalAlignment="Top" Margin="0,16,0,0"/>
+                <StackPanel VerticalAlignment="Bottom">
+                  <Grid Height="24">
+                    <Border CornerRadius="5" Background="#244B3E" Padding="7,4" HorizontalAlignment="Left" VerticalAlignment="Center">
+                      <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="9" Foreground="#9CE4BB" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBlock Text="强制关机" Foreground="#B3DEC1" FontSize="10"/>
+                      </StackPanel>
+                    </Border>
+                    <TextBlock x:Name="StatusHint" Text="确认后生效" Foreground="#9AB8A5" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                  </Grid>
+                  <Button x:Name="TrayButton" Content="收起到托盘  ↘" Visibility="Collapsed" Style="{StaticResource BaseButton}" Background="#23463C" BorderBrush="#3A5F4F" Foreground="#BCE1C7" FontSize="11" Height="34" Margin="0,12,0,0"/>
+                </StackPanel>
+              </Grid>
+            </Grid>
+          </Grid>
+        </Border>
+      </Grid>
+      <Grid Grid.Row="2" Margin="31,0,24,8">
+        <TextBlock x:Name="FooterStatus" Text="单文件 · 无需安装 · 不保存配置" FontSize="10" Foreground="#8D9A94" VerticalAlignment="Center"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+          <Button x:Name="CancelSystemButton" Content="取消系统关机" Style="{StaticResource TextButton}" ToolTip="用于取消 Windows 当前待执行的关机或重启"/>
+          <TextBlock Text="·" Foreground="#B1BDB6" VerticalAlignment="Center" Margin="1,0"/>
+          <Button x:Name="HelpButton" Content="使用说明" Style="{StaticResource TextButton}"/>
+        </StackPanel>
+      </Grid>
+      <Grid x:Name="ModalOverlay" Grid.RowSpan="3" Background="#77102924" Visibility="Collapsed" KeyboardNavigation.TabNavigation="Cycle">
+        <Border Width="422" Background="White" CornerRadius="18" Padding="27" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <StackPanel>
+            <Border Width="40" Height="40" Background="#EDF6F0" CornerRadius="11" HorizontalAlignment="Left" Margin="0,0,0,18">
+              <TextBlock x:Name="ModalIcon" Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="#137C72" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <TextBlock x:Name="ModalHeading" FontSize="21" FontWeight="SemiBold" TextWrapping="Wrap"/>
+            <TextBlock x:Name="ModalBody" FontSize="13" Foreground="#718078" TextWrapping="Wrap" LineHeight="23" Margin="0,13,0,23"/>
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+              <Button x:Name="ModalSecondary" Content="返回" Style="{StaticResource BaseButton}" Height="42"/>
+              <Button x:Name="ModalPrimary" Grid.Column="2" Content="确认" Style="{StaticResource PrimaryButton}" Height="42"/>
+            </Grid>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Grid>
+  </Viewbox>
+</Window>
