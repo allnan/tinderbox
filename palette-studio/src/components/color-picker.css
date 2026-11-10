@@ -1,0 +1,820 @@
+/* ==========================================================================
+   紧凑型现代取色器（ColorPicker）
+   参考 react-colorful 的极简结构 + Figma 的吸取/色板习惯：
+   当前色 + HEX/吸管 → 饱和度明度面板 → 色相 → 透明度 → RGB(A) → 单行色板
+   ========================================================================== */
+
+/* 棋盘格（透明度预览） */
+.cp-checker {
+  background-image:
+    linear-gradient(45deg, rgba(128, 128, 128, 0.22) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(128, 128, 128, 0.22) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(128, 128, 128, 0.22) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(128, 128, 128, 0.22) 75%);
+  background-size: 10px 10px;
+  background-position:
+    0 0,
+    0 5px,
+    5px -5px,
+    -5px 0;
+}
+
+/* ---------- 触发色块 ---------- */
+
+.cp-trigger {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.14s var(--ease), box-shadow 0.14s;
+}
+
+.cp-trigger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -10px rgba(0, 0, 0, 0.6);
+}
+
+.cp-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.cp-trigger-fill {
+  position: absolute;
+  inset: 0;
+}
+
+.cp-trigger-pipette {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  backdrop-filter: blur(2px);
+}
+
+.cp-trigger.has-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: auto !important;
+  height: auto !important;
+  padding: 4px 10px 4px 4px;
+  overflow: visible;
+}
+
+.cp-trigger.has-label .cp-trigger-fill {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border-radius: 4px;
+}
+
+.cp-trigger.has-label .cp-trigger-pipette {
+  position: static;
+  width: auto;
+  height: auto;
+  background: transparent;
+  color: var(--text-3);
+  backdrop-filter: none;
+}
+
+.cp-trigger-label {
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+/* ---------- 浮层 ---------- */
+
+.cp-popover {
+  position: fixed;
+  z-index: 150;
+  width: 340px;
+  max-width: calc(100vw - 20px);
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-pop);
+  animation: cp-popover-in 0.15s var(--ease);
+  user-select: none;
+}
+
+@keyframes cp-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
+  }
+}
+
+/* 头部：当前颜色（色块+可编辑色值） / 初始颜色（色块+色值，可点击恢复） / 吸管 */
+.cp-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+/* 当前颜色：色块与 HEX 输入合并成一个「颜色值」区域 */
+.cp-color-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 5px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.cp-color-field:focus-within {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-softer);
+}
+
+.cp-field-swatch {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  overflow: hidden;
+  padding: 0;
+}
+/* 棋盘格垫在颜色下层：仅当前颜色真正半透明时才透出，不透明颜色不显示网格 */
+.cp-field-swatch.cp-checker::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--swatch-color, transparent);
+  pointer-events: none;
+}
+
+.cp-color-preview {
+  position: fixed;
+  z-index: 160;
+  width: 138px;
+  padding: 2px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-pop);
+  animation: cp-color-preview-in 0.12s var(--ease);
+}
+
+.cp-color-preview-swatch {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 132px;
+  height: 132px;
+  padding: 9px 11px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  overflow: hidden;
+}
+
+@keyframes cp-color-preview-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cp-color-preview-name {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.cp-color-preview-hex {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.cp-hex {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-1);
+  font-size: 11.5px;
+  outline: none;
+}
+
+/* 初始颜色：参考显示（色块 + 色值），与当前颜色区同规格 */
+.cp-initial {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 5px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+}
+
+.cp-initial-hex {
+  font-size: 11.5px;
+  line-height: 1;
+  color: var(--text-2);
+  letter-spacing: 0.2px;
+}
+
+/* 恢复按钮：紧挨在初始颜色右边，颜色未改动时禁用置灰，改动后点亮（固定占位，不改变面板尺寸） */
+.cp-restore-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 9px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+  color: var(--text-2);
+  font-size: 11px;
+  cursor: default;
+  opacity: 0.45;
+  transition: opacity 0.15s var(--ease), border-color 0.15s var(--ease), background 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.cp-restore-btn.is-active {
+  opacity: 1;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.cp-restore-btn.is-active:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-softer);
+}
+
+.cp-eye {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.cp-eye:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-softer);
+}
+
+/* 饱和度 / 明度 */
+.cp-sv {
+  position: relative;
+  height: 140px;
+  border-radius: 4px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.cp-sv-white {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0));
+}
+
+.cp-sv-black {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, #000, rgba(0, 0, 0, 0));
+}
+
+.cp-sv-cursor {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* 色相条 */
+.cp-hue {
+  position: relative;
+  height: 10px;
+  margin-top: 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  touch-action: none;
+  background: linear-gradient(
+    to right,
+    #f00 0%,
+    #ff0 16.66%,
+    #0f0 33.33%,
+    #0ff 50%,
+    #00f 66.66%,
+    #f0f 83.33%,
+    #f00 100%
+  );
+}
+
+.cp-hue-cursor,
+.cp-alpha-cursor {
+  position: absolute;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* 透明度条：棋盘格底 + 从透明到实色的渐变 */
+.cp-alpha {
+  position: relative;
+  height: 10px;
+  margin-top: 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.cp-alpha-gradient {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+/* RGB / A 数值（一行四格） */
+.cp-rgb {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.cp-rgb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 4px 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+}
+
+.cp-rgb-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.cp-rgb-input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-1);
+  font-size: 11px;
+  text-align: right;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.cp-rgb-input::-webkit-inner-spin-button,
+.cp-rgb-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.cp-rgb-unit {
+  font-size: 9px;
+  color: var(--text-3);
+}
+
+/* 色板：常用 / 中性 / 最近 */
+.cp-foot {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.cp-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.cp-tab {
+  padding: 2px 7px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.cp-tab:hover {
+  color: var(--text-2);
+  background: var(--bg-hover);
+}
+
+.cp-tab.is-active {
+  color: var(--accent);
+  background: var(--accent-softer);
+  font-weight: 600;
+}
+
+.cp-swatches {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+}
+
+.cp-swatch {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, rgba(128, 128, 128, 0.22) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(128, 128, 128, 0.22) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(128, 128, 128, 0.22) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(128, 128, 128, 0.22) 75%);
+  background-size: 8px 8px;
+  background-position:
+    0 0,
+    0 4px,
+    4px -4px,
+    -4px 0;
+  transition: transform 0.12s var(--ease);
+}
+
+.cp-swatch > span {
+  position: absolute;
+  inset: 0;
+}
+
+.cp-swatch:hover {
+  transform: scale(1.15);
+}
+
+.cp-swatch.is-active {
+  box-shadow:
+    0 0 0 2px var(--bg-elevated),
+    0 0 0 3px var(--accent);
+}
+
+.cp-empty {
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+/* ---------- 取色画布 / 模式切换 ---------- */
+
+.cp-canvas {
+  position: relative;
+}
+
+/* ---------- 取色方式：整行分段控件（tab 上方的 pin 用于设默认） ---------- */
+
+.cp-mode-switch {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 8px;
+  padding: 3px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+}
+
+.cp-mode-item {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-radius: 7px;
+  transition: background 0.15s var(--ease);
+}
+
+.cp-mode-item:hover {
+  background: var(--bg-hover);
+}
+
+.cp-mode-item.is-active {
+  background: var(--bg-elevated);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+}
+
+/* pin：放在 tab 右侧、垂直居中；默认只有被 pin 的 tab 显示，当前 tab 悬停才出现 */
+.cp-mode-pin {
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-50%);
+  pointer-events: none;
+  transition: opacity 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.cp-mode-item.is-active:hover .cp-mode-pin,
+.cp-mode-item.is-active:focus-within .cp-mode-pin {
+  opacity: 0.9;
+  color: var(--text-2);
+  pointer-events: auto;
+}
+
+.cp-mode-item.is-active .cp-mode-pin:hover {
+  opacity: 1;
+  color: var(--accent);
+  background: var(--bg-hover);
+}
+
+/* 已 pin：常显；未选中时仍清晰可辨（不再过淡） */
+.cp-mode-item.is-pinned .cp-mode-pin {
+  opacity: 0.8;
+  color: var(--accent);
+  pointer-events: auto;
+}
+
+.cp-mode-item.is-pinned:hover .cp-mode-pin {
+  opacity: 1;
+}
+
+.cp-mode-item.is-pinned.is-active .cp-mode-pin {
+  opacity: 1;
+}
+
+.cp-mode-item.is-pinned:not(.is-active) .cp-mode-pin {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.cp-mode-tab {
+  width: 100%;
+  height: 24px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 11px;
+  text-align: center;
+  cursor: pointer;
+  transition: color 0.15s var(--ease);
+}
+
+.cp-mode-item.is-active .cp-mode-tab {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+.cp-mode-item:not(.is-active):hover .cp-mode-tab {
+  color: var(--text-2);
+}
+
+/* ---------- 偏好设置：应用方式（面板底部） ---------- */
+
+.cp-settings {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.cp-settings-label {
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.cp-settings-hint {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+/* 应用方式（立即 / 确认后） */
+.cp-apply-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+}
+
+.cp-apply-btn {
+  min-width: 44px;
+  height: 20px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 10px;
+  line-height: 1;
+  text-align: center;
+  cursor: pointer;
+}
+
+.cp-apply-btn:hover {
+  color: var(--text-1);
+}
+
+.cp-apply-btn.is-active {
+  background: var(--bg-elevated);
+  color: var(--text-1);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+/* 确认模式的底部操作条（只保留取消/应用，右对齐） */
+.cp-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.cp-btn-ghost {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.cp-btn-ghost:hover {
+  background: var(--bg-hover);
+}
+
+.cp-btn-primary {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cp-btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---------- 色块网格模式（单击即选） ---------- */
+
+.cp-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cp-grid-row {
+  display: flex;
+  gap: 3px;
+}
+
+.cp-grid-row.is-neutral {
+  margin-top: 2px;
+}
+
+.cp-grid-cell {
+  flex: 1;
+  height: 20px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  transition: transform 0.1s var(--ease);
+}
+
+.cp-grid-cell:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.cp-grid-cell.is-active {
+  box-shadow:
+    0 0 0 2px var(--bg-elevated),
+    0 0 0 3px var(--accent);
+}
+
+/* ---------- 全彩矩形色板（横向色相 / 纵向明暗） ---------- */
+
+/* 外圈 8px 为可拖拽命中区：圆圈伸到面板外侧时也能按住拖动，视觉尺寸不变 */
+.cp-spectrum-wrap {
+  position: relative;
+  margin: -8px;
+  padding: 8px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.cp-spectrum {
+  position: relative;
+  height: 150px;
+  border-radius: 4px;
+  cursor: crosshair;
+  touch-action: none;
+  background: linear-gradient(
+    to right,
+    #f00 0%,
+    #ff0 16.66%,
+    #0f0 33.33%,
+    #0ff 50%,
+    #00f 66.66%,
+    #f0f 83.33%,
+    #f00 100%
+  );
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.cp-spectrum-cursor {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}

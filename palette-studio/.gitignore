@@ -1,0 +1,34 @@
+# 依赖与构建产物
+node_modules/
+.npm-cache/
+.npm-logs/
+.build/
+dist/
+release/
+runtime/
+build/
+.preview-test2/
+
+# 本地调试产物
+.shots/
+.shots-preview/
+.diagnostics/
+.smoke.log
+.smoke.png
+.electron-userdata/
+npm-install.log
+package.log
+.zip-test/
+.diag-*
+.packaged-userdata/
+.final-userdata/
+.preview-test-data/
+.tmp-*.py
+.tmp-*
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

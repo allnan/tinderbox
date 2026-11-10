@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN" data-app-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <title>配色工坊 · 前端配色管理工具</title>
+    <!-- STYLES -->
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // 为打包后的 CJS 依赖提供最小 process/global 垫片
+      window.process = { env: { NODE_ENV: 'production' } }
+      window.global = window
+      // 收集运行时错误，供自动化冒烟测试读取
+      window.__ERRORS__ = []
+      window.addEventListener('error', function (event) {
+        window.__ERRORS__.push(String(event.message) + ' @ ' + (event.filename || '') + ':' + event.lineno)
+      })
+      window.addEventListener('unhandledrejection', function (event) {
+        window.__ERRORS__.push('promise: ' + String(event.reason))
+      })
+    </script>
+    <!-- APP -->
+  </body>
+</html>

@@ -8,6 +8,7 @@
 | --- | --- | --- |
 | ADB 无线调试 | Windows 桌面工具，提供 Android 无线调试的二维码与配对码配对、设备发现、连接及历史配对管理。 | [ADB-connect-tool](./ADB-connect-tool/) |
 | Codex 用量预测 | Codex 桌面侧边栏插件，显示 5 小时与周额度、重置时间、历史用量曲线和用量预测。 | [codex-usage-panel](./codex-usage-panel/) |
+| 配色工坊 | Windows 桌面工具，为前端项目生成、管理、检查并导出配色方案。 | [palette-studio](./palette-studio/) |
 | 晚安定时关机 | Windows 桌面工具，按倒计时或指定时刻安排强制关机，并提供取消与分区时间预览。 | [goodnight-shutdown-tool](./goodnight-shutdown-tool/) |
 | 终末地资源账本 | Windows x64 与 Android 资源记录工具，提供抽数换算、游戏日趋势和局域网同步。 | [endfield-resources-tools](./endfield-resources-tools/) |
 
@@ -17,6 +18,7 @@
 
 - ADB 无线调试：[使用说明](./ADB-connect-tool/docs/使用说明.md) · [开发说明](./ADB-connect-tool/docs/开发说明.md)。
 - Codex 用量预测：[使用说明](./codex-usage-panel/docs/使用说明.md) · [开发说明](./codex-usage-panel/docs/开发说明.md) · [额度预算算法](./codex-usage-panel/docs/额度预算算法.md)。
+- 配色工坊：[使用说明](./palette-studio/docs/使用说明.md) · [开发说明](./palette-studio/docs/开发说明.md) · [取色器说明](./palette-studio/docs/取色器说明.md) · [项目交接](./palette-studio/docs/项目交接.md) · [更新日志](./palette-studio/docs/更新日志.md)。
 - 晚安定时关机：[使用说明](./goodnight-shutdown-tool/docs/使用说明.md) · [开发说明](./goodnight-shutdown-tool/docs/开发说明.md)。
 - 终末地资源账本：[使用说明](./endfield-resources-tools/docs/使用说明.md) · [开发说明](./endfield-resources-tools/docs/开发说明.md) · [换算与记录规则](./endfield-resources-tools/docs/换算与记录规则.md) · [验证记录](./endfield-resources-tools/docs/验证记录.md)。
 

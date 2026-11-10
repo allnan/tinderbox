@@ -1,0 +1,451 @@
+/* ==========================================================================
+   主题视图（ThemeView）
+   生成方式 / 语义 token / 色阶 / 主题化迷你界面预览
+   预览区颜色全部来自 theme.tokens（以 --pv-* 变量注入），不写死明暗色。
+   ========================================================================== */
+
+.theme-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- 主题概览 ---------- */
+
+.theme-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.theme-overview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.theme-overview-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.theme-overview-swatch {
+  width: 62px;
+  height: 62px;
+  flex: 0 0 auto;
+  padding: 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  cursor: pointer;
+  box-shadow:
+    0 14px 28px -18px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  transition: transform 0.16s var(--ease);
+}
+
+.theme-overview-swatch:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.theme-overview-swatch-icon {
+  opacity: 0.6;
+}
+
+.theme-overview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.theme-overview-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.theme-overview-hex-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.theme-overview-hex {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-1);
+  font-size: 22px;
+  font-weight: 720;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  transition: color 0.14s;
+}
+
+.theme-overview-hex:hover {
+  color: var(--accent);
+}
+
+.theme-overview-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.theme-overview-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.theme-overview-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.theme-overview-action-hint {
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+
+/* ---------- 5 种生成方式 ---------- */
+
+.theme-method-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.theme-method-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-panel-2);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, transform 0.14s var(--ease);
+}
+
+.theme-method-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.theme-method-card.is-selected {
+  border-color: var(--accent-border);
+  background:
+    linear-gradient(130deg, var(--accent-soft), transparent 85%),
+    var(--bg-panel-2);
+  box-shadow: inset 0 0 0 1px var(--accent-softer);
+}
+
+.theme-method-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.theme-method-radio {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  transition: border-color 0.14s, background 0.14s, box-shadow 0.14s;
+}
+
+.theme-method-card.is-selected .theme-method-radio {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.theme-method-name {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--text-1);
+}
+
+.theme-method-card.is-selected .theme-method-name {
+  color: var(--accent);
+}
+
+.theme-method-applied {
+  margin-left: auto;
+  height: 16px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 9px;
+  line-height: 14px;
+  color: var(--text-3);
+  flex: 0 0 auto;
+}
+
+.theme-method-desc {
+  font-size: 10.5px;
+  color: var(--text-3);
+  line-height: 1.5;
+  min-height: 31px;
+}
+
+/* ---------- 生成提示 / 主色漂移警告 ---------- */
+
+.theme-generate-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 11px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--bg-panel-2);
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.55;
+}
+
+.theme-generate-hint svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.theme-drift {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--warning) 34%, transparent);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  color: color-mix(in srgb, var(--warning) 82%, var(--text-1));
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.theme-drift svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+/* ---------- 语义 token 网格 ---------- */
+
+.theme-token-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.theme-token-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.theme-token-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding-bottom: 7px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.theme-token-group-title {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-1);
+}
+
+.theme-token-group-hint {
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+
+.theme-token-group-count {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.theme-token-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+  gap: 8px;
+}
+
+.theme-token-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-panel-2);
+  overflow: hidden;
+  transition: border-color 0.16s, transform 0.16s var(--ease);
+}
+
+.theme-token-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.theme-token-swatches {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+}
+
+.theme-token-swatch {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  height: 52px;
+  padding: 5px 7px;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  transition: filter 0.14s;
+}
+
+.theme-token-swatch:hover {
+  filter: brightness(1.06);
+}
+
+.theme-token-swatch.is-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 2px var(--accent);
+  pointer-events: none;
+}
+
+.theme-token-swatch.is-active .theme-token-mode {
+  font-weight: 700;
+  opacity: 1;
+}
+
+.theme-token-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  opacity: 0.76;
+}
+
+.theme-token-value {
+  font-size: 9.5px;
+  letter-spacing: 0.1px;
+  opacity: 0.92;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.theme-token-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px 8px;
+  min-width: 0;
+}
+
+.theme-token-label {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.theme-token-key {
+  font-size: 9.5px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 8 组色阶 ---------- */
+
+.theme-scale-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.theme-scale-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.theme-scale-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.theme-scale-label {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.theme-scale-key {
+  font-size: 9.5px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* ---------- 响应式 ---------- */
+
+@media (max-width: 1320px) {
+  .theme-scale-row {
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .theme-overview-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .theme-overview-action {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+}
