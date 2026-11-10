@@ -107,6 +107,7 @@
     .chart-forecast { fill: none; stroke: var(--amber); stroke-width: 2.2; stroke-linecap: round; }
     .chart-point-current { fill: var(--surface); stroke: var(--green); stroke-width: 2.2; }
     .chart-point-forecast { fill: var(--surface); stroke: var(--amber); stroke-width: 2.2; }
+    .chart-overflow-arrow { fill: none; stroke: var(--amber); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .chart-pace-area { fill: var(--amber); opacity: .08; }
     .chart-pace-edge { stroke: var(--amber); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .95; }
     .chart-text { fill: var(--subtle); font-size: 10px; font-family: inherit; }
@@ -281,7 +282,7 @@
 
       function percent(value) {
         if (value == null || !Number.isFinite(value)) return "暂不可预测";
-        return Math.round(value) + "%";
+        return (value > 100 ? Math.ceil(value) : Math.round(value)) + "%";
       }
 
       function smoothUsagePath(sourcePoints) {
@@ -340,7 +341,7 @@
 
       function meterMarkup(windowData) {
         var current = Math.max(0, Math.min(100, windowData.usedPercent));
-        return '<div class="meter" role="img" aria-label="当前已用 ' + Math.round(windowData.usedPercent) + '%">' +
+        return '<div class="meter" role="img" aria-label="当前已用 ' + percent(windowData.usedPercent) + '">' +
           '<div class="meter-current" style="width:' + current + '%"></div></div>';
       }
 
@@ -405,8 +406,10 @@
         if (forecast != null) {
           var forecastY = y(forecast);
           forecastPath = '<path class="chart-forecast" d="M ' + nowX + ' ' + currentY + ' L ' + right + ' ' + forecastY + '"></path>';
+          var overflowArrow = forecast > 100 ? '<path class="chart-overflow-arrow" d="M ' + (right - 46) + ' ' + (forecastY + 7) + ' L ' + (right - 46) + ' ' + (forecastY - 3) + ' M ' + (right - 50) + ' ' + (forecastY + 1) + ' L ' + (right - 46) + ' ' + (forecastY - 3) + ' L ' + (right - 42) + ' ' + (forecastY + 1) + '"></path>' : '';
+          var forecastLabel = percent(forecast);
           forecastMarker = '<circle class="chart-point-forecast" cx="' + right + '" cy="' + forecastY + '" r="4.4"></circle>' +
-            '<text class="chart-value" x="' + (right - 1) + '" y="' + Math.max(10, forecastY - 8) + '" text-anchor="end">' + percent(forecast) + '</text>';
+            overflowArrow + '<text class="chart-value" x="' + (right - 1) + '" y="' + Math.max(10, forecastY - 8) + '" text-anchor="end">' + forecastLabel + '</text>';
         }
         var actualPoints = [];
         if (hasUsageCurve) {
@@ -442,11 +445,14 @@
         }
         var forecast = data.forecastPercent;
         var tagClass = forecast != null && forecast >= 100 ? "tag warn" : "tag";
+        var overrunLabel = forecast > 100 ? Math.max(1, Math.ceil(forecast - 100)) + "%" : "";
         var tagText = forecast == null ? "重置时余量估算中" :
-          (forecast >= 100 ? "重置前预计用尽" : "重置时余量 " + percent(Math.max(0, 100 - forecast)));
+          (forecast > 100 ? "预计超额 " + overrunLabel :
+            (forecast === 100 ? "重置前预计用尽" : "重置时余量 " + percent(Math.max(0, 100 - forecast))));
         var tagTitle = forecast == null ? (data.forecastNote || "当前用量样本不足，暂时无法估算重置时余量") :
-          (forecast >= 100 ? "按当前窗口平均用量速度外推，预计额度会在重置前用尽。" :
-            "按当前窗口平均用量速度外推，到额度重置时预计还剩 " + percent(Math.max(0, 100 - forecast)) + "。");
+          (forecast > 100 ? "按当前窗口平均用量速度外推，预计重置前会超出额度 " + overrunLabel + "（超额量向上取整显示）。" :
+            (forecast === 100 ? "按当前窗口平均用量速度外推，预计重置前刚好用完额度。" :
+              "按当前窗口平均用量速度外推，到额度重置时预计还剩 " + percent(Math.max(0, 100 - forecast)) + "。"));
         return '<article class="card"><div class="card-head"><div><div class="period">' + title +
           '</div><div class="window-note">' + subtitle + '</div></div><span class="' + tagClass + '" title="' + tagTitle + '">' + tagText + '</span></div>' +
           '<div class="usage-row"><div><span class="percent">' + percent(data.usedPercent) +
@@ -514,7 +520,7 @@
         try {
           var context = await rpc("ui/initialize", {
             appCapabilities: {},
-            appInfo: { name: "codex-usage-panel", version: "0.1.29" },
+            appInfo: { name: "codex-usage-panel", version: "0.1.30" },
             protocolVersion: "2025-11-25"
           });
           ready = true;

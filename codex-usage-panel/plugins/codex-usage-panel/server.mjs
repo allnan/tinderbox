@@ -8,7 +8,7 @@ import readline from "node:readline";
 import { estimatePaceGuidance, forecastQuotaPercent } from "./pace-model.mjs";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
-const UI_URI = "ui://codex-usage-panel/dashboard-v0.1.29";
+const UI_URI = "ui://codex-usage-panel/dashboard-v0.1.30";
 const LEGACY_UI_URIS = new Set([
   "ui://codex-usage-panel/dashboard-v0.1.9",
   "ui://codex-usage-panel/dashboard-v0.1.10",
@@ -29,10 +29,11 @@ const LEGACY_UI_URIS = new Set([
   "ui://codex-usage-panel/dashboard-v0.1.25",
   "ui://codex-usage-panel/dashboard-v0.1.26",
   "ui://codex-usage-panel/dashboard-v0.1.27",
-  "ui://codex-usage-panel/dashboard-v0.1.28"
+  "ui://codex-usage-panel/dashboard-v0.1.28",
+  "ui://codex-usage-panel/dashboard-v0.1.29"
 ]);
 const UI_HTML = readFileSync(join(ROOT, "ui", "index.html"), "utf8");
-const VERSION = "0.1.29";
+const VERSION = "0.1.30";
 const HISTORY_LOOKBACK_DAYS = 14;
 const HISTORY_CACHE_MS = 5 * 60 * 1000;
 const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
@@ -143,7 +144,7 @@ function makeWindow(window, now) {
   const duration = window.windowDurationMins == null ? NaN : Number(window.windowDurationMins);
   const used = window.usedPercent == null ? NaN : Number(window.usedPercent);
   if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(used)) return null;
-  const boundedUsed = Math.max(0, Math.min(100, used));
+  const usedPercent = Math.max(0, used);
   let resetsAt = window.resetsAt == null ? NaN : Number(window.resetsAt);
   if (!Number.isFinite(resetsAt) && window.resetAfterSeconds != null && Number.isFinite(Number(window.resetAfterSeconds))) {
     resetsAt = Math.floor(now / 1000) + Number(window.resetAfterSeconds);
@@ -154,17 +155,17 @@ function makeWindow(window, now) {
   let forecastPercent = null;
   let forecastNote = "缺少足够的窗口时间数据";
   if (elapsedMinutes != null && elapsedMinutes >= 5 && remainingMinutes >= 0 && elapsedMinutes <= duration) {
-    const linearForecast = boundedUsed * duration / elapsedMinutes;
-    forecastPercent = forecastQuotaPercent(boundedUsed, duration, elapsedMinutes);
-    forecastNote = linearForecast > 100 ? "按本窗口平均速度外推，显示封顶于100%" : "按本窗口平均速度外推";
+    const linearForecast = usedPercent * duration / elapsedMinutes;
+    forecastPercent = forecastQuotaPercent(usedPercent, duration, elapsedMinutes);
+    forecastNote = linearForecast > 100 ? "按本窗口平均速度外推，超过100%表示预计超额" : "按本窗口平均速度外推";
   } else if (elapsedMinutes != null && elapsedMinutes >= 0 && remainingMinutes >= 0) {
     forecastNote = "窗口刚开始，继续使用后会生成预测";
   } else if (remainingMinutes != null && remainingMinutes < 0) {
     forecastNote = "重置时间已过，正在等待新快照";
   }
   return {
-    usedPercent: boundedUsed,
-    remainingPercent: 100 - boundedUsed,
+    usedPercent,
+    remainingPercent: Math.max(0, 100 - usedPercent),
     windowDurationMins: duration,
     resetsAt: resetAtMs,
     remainingMinutes: remainingMinutes == null ? null : Math.max(0, remainingMinutes),

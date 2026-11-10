@@ -62,9 +62,10 @@ test("public hourly data have 24 valid entries and retain a lunch dip", () => {
   }
 });
 
-test("linear chart forecast is capped at the quota limit", () => {
-  assert.equal(forecastQuotaPercent(5, 300, 5), 100);
-  assert.equal(forecastQuotaPercent(25, 300, 60), 100);
+test("linear chart forecast preserves the amount projected above the quota limit", () => {
+  assert.equal(forecastQuotaPercent(5, 300, 5), 300);
+  assert.equal(forecastQuotaPercent(25, 300, 60), 125);
+  assert.equal(forecastQuotaPercent(10, 300, 30), 100);
   assert.equal(forecastQuotaPercent(10, 300, 150), 20);
   assert.equal(forecastQuotaPercent(10, 300, 0), null);
 });

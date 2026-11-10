@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "codex-usage-panel",
-  "version": "0.1.29",
+  "version": "0.1.30",
   "description": "在 Codex 侧边栏查看本机账号的 5 小时与周额度、重置时间和线性用量预测。",
   "author": {
     "name": "JoeJoestar"

@@ -23,7 +23,7 @@ const sum = (values) => values.reduce((total, value) => total + value, 0);
 
 export function forecastQuotaPercent(usedPercent, durationMinutes, elapsedMinutes) {
   if (![usedPercent, durationMinutes, elapsedMinutes].every(Number.isFinite) || durationMinutes <= 0 || elapsedMinutes <= 0) return null;
-  return clamp(usedPercent * durationMinutes / elapsedMinutes, 0, 100);
+  return Math.max(0, usedPercent * durationMinutes / elapsedMinutes);
 }
 
 function weightedMedian(samples) {
