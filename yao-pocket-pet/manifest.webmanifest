@@ -1,0 +1,19 @@
+{
+  "name": "阿咬的口袋宠物机",
+  "short_name": "阿咬宠物机",
+  "lang": "zh-CN",
+  "description": "一台装进手机里的像素宠物机。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eee5d4",
+  "theme_color": "#eee5d4",
+  "icons": [
+    {
+      "src": "./assets/yao-pixel.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

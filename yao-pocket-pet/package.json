@@ -1,0 +1,9 @@
+{
+  "name": "yao-pocket-pet",
+  "version": "0.1.0",
+  "private": true,
+  "description": "手机优先的像素风阿咬虚拟宠物机",
+  "scripts": {
+    "start": "python -m http.server 4173"
+  }
+}

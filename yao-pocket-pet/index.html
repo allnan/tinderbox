@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#eee5d4" />
+    <meta name="description" content="一台装进手机里的像素宠物机，照料来自画中世界的阿咬。" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./assets/yao-pixel.png" type="image/png" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>阿咬的口袋宠物机</title>
+  </head>
+  <body>
+    <div class="page-grain" aria-hidden="true"></div>
+    <main class="app-shell" aria-label="阿咬口袋宠物机">
+      <h1 class="sr-only">阿咬的口袋宠物机</h1>
+      <section class="device-wrap" aria-label="阿咬宠物机">
+        <div class="device">
+          <span class="device-glint glint-one" aria-hidden="true"></span>
+          <span class="device-glint glint-two" aria-hidden="true"></span>
+          <div class="device-brand">
+            <span class="device-mark">YAO</span>
+            <span class="device-brand-name">FIELD COMPANION</span>
+            <span class="device-screw" aria-hidden="true"></span>
+          </div>
+
+          <div class="screen-bezel">
+            <div class="lcd" aria-label="宠物状态屏幕">
+              <div class="lcd-scanlines" aria-hidden="true"></div>
+              <div class="lcd-header">
+                <span class="lcd-mode"><i class="lcd-led"></i><span id="mode-label">FIELD / IDLE</span></span>
+                <time id="clock" datetime="">00:00</time>
+              </div>
+              <div class="lcd-world" id="lcd-world" data-time="day">
+                <span class="world-spark spark-a" aria-hidden="true">✦</span>
+                <span class="world-spark spark-b" aria-hidden="true">·</span>
+                <span class="world-spark spark-c" aria-hidden="true">✧</span>
+                <div class="pixel-cloud cloud-a"></div>
+                <div class="pixel-cloud cloud-b"></div>
+                <div class="hill hill-back"></div>
+                <div class="hill hill-front"></div>
+                <span class="world-flower flower-a" aria-hidden="true">✳</span>
+                <span class="world-flower flower-b" aria-hidden="true">✿</span>
+                <div class="game-hud" id="game-hud" hidden aria-live="polite">
+                  <span>剩余 <b id="game-time">12.0</b> 秒</span>
+                  <span>抓到 <b id="game-score">0</b> 枚</span>
+                </div>
+                <button class="pet-tap" id="pet-tap" type="button" aria-label="摸摸阿咬，或点屏幕空处让它走过去">
+                  <span class="pet-sprite" id="pet-sprite">
+                    <img class="pet-art" src="./assets/yao-pixel.png" alt="" draggable="false" />
+                    <span class="pet-eyes" id="pet-eyes" aria-hidden="true"></span>
+                    <span class="pet-effect" id="pet-effect" aria-hidden="true"></span>
+                    <span class="pet-shadow"></span>
+                  </span>
+                </button>
+                <button class="activity-object" id="activity-object" type="button" hidden aria-label="追上飘过的叶子">
+                  <span aria-hidden="true">◆</span>
+                </button>
+                <button class="game-target" id="game-target" type="button" hidden aria-label="抓住墨点">✦</button>
+                <span class="world-ground" aria-hidden="true"></span>
+              </div>
+              <p class="pet-dialogue" id="pet-dialogue" aria-live="polite">咬！今天也一起出发吧。</p>
+              <div class="lcd-stats" aria-label="阿咬状态">
+                <div class="stat-row" data-stat="fullness">
+                  <span class="stat-icon" aria-hidden="true">食</span><span class="stat-name">饱食</span>
+                  <span class="stat-track"><i id="bar-fullness"></i></span><b id="value-fullness">76</b>
+                </div>
+                <div class="stat-row" data-stat="mood">
+                  <span class="stat-icon" aria-hidden="true">心</span><span class="stat-name">心情</span>
+                  <span class="stat-track"><i id="bar-mood"></i></span><b id="value-mood">82</b>
+                </div>
+                <div class="stat-row" data-stat="energy">
+                  <span class="stat-icon" aria-hidden="true">力</span><span class="stat-name">体力</span>
+                  <span class="stat-track"><i id="bar-energy"></i></span><b id="value-energy">88</b>
+                </div>
+              </div>
+              <div class="lcd-summary" aria-label="成长与旅途记录">
+                <span class="summary-item">洁 <b id="value-cleanliness">94</b></span>
+                <span class="summary-item" id="bond-label">Lv.1 初识</span>
+                <span class="summary-item">墨 <b id="ink-value">08</b></span>
+                <span class="summary-item" id="daily-progress">今日 0/3</span>
+                <button class="journal-open" id="journal-open" type="button">旅记</button>
+              </div>
+              <section class="interaction-panel" id="interaction-panel" role="dialog" aria-modal="true" aria-labelledby="panel-title" aria-hidden="true" hidden>
+                <div class="panel-header">
+                  <strong id="panel-title">照料阿咬</strong>
+                  <button class="panel-close" type="button" data-close-panel aria-label="关闭菜单">×</button>
+                </div>
+                <div class="panel-content" id="panel-content"></div>
+                <p class="panel-note" id="panel-note"></p>
+              </section>
+            </div>
+          </div>
+
+          <div class="hardware-meta" aria-hidden="true">
+            <span>YAO-01</span><span class="hardware-divider"></span><span>INK BEAST / 4.2V</span>
+          </div>
+          <div class="controls" aria-label="照料按键">
+            <button class="control" type="button" data-action="feed" aria-label="A 键：投喂阿咬">
+              <span class="control-cap"><span>A</span></span><span class="control-label">投喂</span>
+            </button>
+            <button class="control" type="button" data-action="play" aria-label="S 键：和阿咬玩耍">
+              <span class="control-cap"><span>S</span></span><span class="control-label">互动</span>
+            </button>
+            <button class="control" type="button" data-action="care" aria-label="D 键：进入照料菜单">
+              <span class="control-cap"><span>D</span></span><span class="control-label" id="care-button-label">护理</span>
+            </button>
+          </div>
+          <div class="device-foot"><span class="speaker-dots" aria-hidden="true">·········</span><span class="device-led" aria-hidden="true"></span></div>
+        </div>
+        <div class="device-shadow" aria-hidden="true"></div>
+      </section>
+
+      <p class="sr-only" id="footer-message" aria-live="polite">点屏幕里的阿咬，或者按下面的按键照料它。</p>
+    </main>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

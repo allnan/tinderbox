@@ -1,0 +1,38 @@
+{
+  "name": "x-media-studio",
+  "productName": "XMediaStudio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "X 媒体工坊 — 解析 X（Twitter）推文媒体，保存原始文件（MP4/图片）并可选导出高质量 GIF 的 Windows 桌面工具",
+  "main": "electron/main.cjs",
+  "author": "X 媒体工坊",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1",
+    "dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1 -SkipBuild",
+    "test": "node scripts/test.mjs",
+    "typecheck": "node scripts/typecheck.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "package": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1",
+    "fetch-tools": "node scripts/fetch-tools.mjs",
+    "check": "node scripts/typecheck.mjs && node scripts/test.mjs && node scripts/build.mjs && node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@electron/asar": "^3.4.1",
+    "@rollup/plugin-commonjs": "^28.0.1",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@types/node": "^22.19.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "jsdom": "^26.1.0",
+    "rcedit": "^5.0.2",
+    "rollup": "^4.52.0",
+    "terser": "^5.51.2",
+    "typescript": "^5.9.3"
+  }
+}

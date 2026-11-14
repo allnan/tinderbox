@@ -11,6 +11,8 @@
 | 配色工坊 | Windows 桌面工具，为前端项目生成、管理、检查并导出配色方案。 | [palette-studio](./palette-studio/) |
 | 晚安定时关机 | Windows 桌面工具，按倒计时或指定时刻安排强制关机，并提供取消与分区时间预览。 | [goodnight-shutdown-tool](./goodnight-shutdown-tool/) |
 | 终末地资源账本 | Windows x64 与 Android 资源记录工具，提供抽数换算、游戏日趋势和局域网同步。 | [endfield-resources-tools](./endfield-resources-tools/) |
+| X 媒体工坊 | Windows 桌面工具，解析 X（Twitter）推文并保存原始媒体（mp4/图片），可选导出高质量 GIF；支持代理配置、亮/暗主题与按链接整理下载历史。 | [x-gif-studio](./x-gif-studio/) |
+| 阿咬宠物机 | 手机优先的像素风虚拟宠物，支持部位触摸、场景移动、追叶子、躲猫猫、喂食护理和日常陪伴记录。 | [yao-pocket-pet](./yao-pocket-pet/) |
 
 新增项目后，必须在此登记项目名称、一句话简介和对应文件夹的相对链接。
 
@@ -21,6 +23,8 @@
 - 配色工坊：[使用说明](./palette-studio/docs/使用说明.md) · [开发说明](./palette-studio/docs/开发说明.md) · [取色器说明](./palette-studio/docs/取色器说明.md) · [项目交接](./palette-studio/docs/项目交接.md) · [更新日志](./palette-studio/docs/更新日志.md)。
 - 晚安定时关机：[使用说明](./goodnight-shutdown-tool/docs/使用说明.md) · [开发说明](./goodnight-shutdown-tool/docs/开发说明.md)。
 - 终末地资源账本：[使用说明](./endfield-resources-tools/docs/使用说明.md) · [开发说明](./endfield-resources-tools/docs/开发说明.md) · [换算与记录规则](./endfield-resources-tools/docs/换算与记录规则.md) · [验证记录](./endfield-resources-tools/docs/验证记录.md)。
+- X 媒体工坊：[使用说明](./x-gif-studio/docs/使用说明.md) · [开发说明](./x-gif-studio/docs/开发说明.md) · [架构与接口契约](./x-gif-studio/docs/架构与接口契约.md) · [GIF 转换技术方案](./x-gif-studio/docs/GIF转换技术方案.md) · [网络与代理](./x-gif-studio/docs/网络与代理.md)。
+- 阿咬宠物机：[使用说明](./yao-pocket-pet/docs/使用说明.md) · [开发说明](./yao-pocket-pet/docs/开发说明.md) · [资料来源与角色设定](./yao-pocket-pet/docs/资料来源与角色设定.md) · [设计核对](./yao-pocket-pet/docs/设计核对.md)。
 
 ## 存放方式
 

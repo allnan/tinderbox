@@ -1,0 +1,30 @@
+# 依赖与构建产物（均不入库）
+node_modules/
+.npm-cache/
+.npm-logs/
+.build/
+dist/
+release/
+runtime/
+build/
+tools/bin/
+
+# 本地调试产物
+.shots/
+.diagnostics/
+.smoke.log
+.smoke.png
+.electron-userdata/
+userdata/
+*.log
+
+# Python（图标生成脚本的缓存）
+__pycache__/
+*.pyc
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

@@ -1,0 +1,6 @@
+{
+    "i18n-ally.localesPaths": [
+        "palette-studio/runtime/locales",
+        "palette-studio/release/PaletteStudio/locales"
+    ]
+}
