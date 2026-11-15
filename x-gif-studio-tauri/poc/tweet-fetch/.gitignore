@@ -1,0 +1,6 @@
+# Rust 构建产物
+/target/
+
+# 手工运行产生的临时输出（正式证据放 evidence/）
+/out/
+*.log

@@ -1,0 +1,32 @@
+[package]
+name = "xgif-tweet-fetch-poc"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+description = "X 媒体工坊真实推文解析 Rust 原型（移植 x-gif-studio/electron/lib/tweet.cjs）"
+license = "UNLICENSED"
+publish = false
+
+[lib]
+name = "xgif_tweet_fetch"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tweet-fetch"
+path = "src/main.rs"
+
+[dependencies]
+# HTTP 客户端：blocking 模式（同步 API）、JSON、SOCKS 代理、系统 TLS（Windows 使用 Schannel）
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "socks", "native-tls", "system-proxy"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+regex = "1"
+# 推文时间解析（ISO 8601 / RFC 2822）与统一毫秒输出
+time = { version = "0.3", features = ["parsing", "formatting"] }
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

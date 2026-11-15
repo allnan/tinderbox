@@ -1,0 +1,7 @@
+# Rust 构建产物
+/target/
+
+# 测试夹具与真实转换产物（由 README 中的命令在本地生成，不入库）
+/testdata/
+/out/
+/work/

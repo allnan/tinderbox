@@ -1,0 +1,14 @@
+# 依赖与构建产物（均不入库）
+node_modules/
+.build/
+dist/
+release/
+src-tauri/target/
+src-tauri/gen/
+poc/**/target/
+poc/**/out/
+userdata/
+
+# 截图/调试临时产物（正式截图放在 docs/assets/screenshots）
+.shots/
+*.log
