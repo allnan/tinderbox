@@ -8,6 +8,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::convert;
+use crate::estimate;
 use crate::history;
 use crate::http;
 use crate::jobs;
@@ -307,6 +308,14 @@ pub async fn gif_remove(file_path: String) -> Value {
 #[tauri::command]
 pub async fn gif_copy_path(file_path: String) -> Value {
     ok(json!(file_path))
+}
+
+#[tauri::command]
+pub async fn gif_estimate(request: estimate::EstimateRequest) -> Value {
+    match estimate::estimate(request).await {
+        Ok(result) => ok(json!(result)),
+        Err(error) => fail(error),
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -544,8 +544,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => media.removeEventListener('change', onChange)
   }, [])
 
-  // 把生效主题写到 <html data-theme>，CSS 只依赖该属性切换明暗变量
+  // 把生效主题写到 <html data-theme>，CSS 只依赖该属性切换明暗变量。
+  // 设置尚未从主进程读回时（ready=false）不要写入，否则会用默认深色覆盖
+  // theme-boot.js 提前设置好的首帧主题，造成浅色用户“白→黑→白”闪一下。
   useEffect(() => {
+    if (!state.ready) return
     try {
       const root = document.documentElement
       root.dataset.theme = effectiveTheme
@@ -553,7 +556,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // 忽略非浏览器环境
     }
-  }, [effectiveTheme])
+  }, [effectiveTheme, state.ready])
 
   // 保存成功后自动清除临时预览（例如设置页选了主题又保存）
   useEffect(() => {

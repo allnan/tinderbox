@@ -120,7 +120,26 @@ async function main() {
 
     await click(cdp, '[data-testid=batch-convert-button]')
     await waitFor(cdp, '!!document.querySelector("[data-testid=convert-drawer]")', 15000, '转换抽屉')
-    await delay(500)
+    // 真实采样体积预估：有本地源文件时先显示「估算中…」，再替换为 gifski 采样编码结果。
+    // 注意要等 live 状态（首帧可能还是 fallback，短轮询会误判）；若一直 fallback 最多等 8 秒。
+    const estimateDeadline = Date.now() + 120000
+    const estimateStarted = Date.now()
+    let estimateState = null
+    while (Date.now() < estimateDeadline) {
+      estimateState = await cdp.evaluate(
+        '(function () { var el = document.querySelector("[data-testid=param-estimate-text]"); return el ? { state: el.getAttribute("data-estimate-state"), bytes: Number(el.getAttribute("data-estimate-bytes") || 0), text: el.innerText || "" } : null; })()',
+      )
+      if (estimateState && estimateState.state === 'live') break
+      if (estimateState && estimateState.state === 'fallback' && Date.now() - estimateStarted > 8000) break
+      await delay(200)
+    }
+    report.estimate = estimateState
+    record(
+      '转换抽屉显示采样编码体积预估',
+      Boolean(estimateState && estimateState.state === 'live' && estimateState.bytes > 0),
+      estimateState ? estimateState.text : '未找到预估元素',
+    )
+    await delay(400)
     await shot(cdp, 'real-05-convert-drawer.png')
     await click(cdp, '[data-testid=start-convert-button]')
     await waitFor(cdp, 'document.querySelectorAll(".result-card").length >= 1', 300000, 'GIF 转换完成')
@@ -132,11 +151,30 @@ async function main() {
     const gifCheck = gifFile ? probeWithFfmpeg(gifFile) : { ok: false, detail: '未找到 GIF 结果' }
     const gifSize = gifFile ? await fileSize(gifFile) : 0
     record('真实转出 GIF 文件', Boolean(gifFile) && (await fileExists(gifFile)) && gifCheck.ok, (gifFile || '') + '；' + gifCheck.detail + '；' + Math.round(gifSize / 1024) + ' KB')
+    const estimatedBytes = report.estimate && report.estimate.bytes > 0 ? report.estimate.bytes : 0
+    if (estimatedBytes > 0 && gifSize > 0) {
+      const errorPct = Math.round(((estimatedBytes / gifSize) - 1) * 1000) / 10
+      report.estimateComparison = { estimatedBytes: estimatedBytes, actualBytes: gifSize, errorPct: errorPct }
+      record(
+        '体积预估与实际 GIF 误差 < 20%',
+        Math.abs(errorPct) < 20,
+        '预估 ' + Math.round(estimatedBytes / 1024) + ' KB / 实际 ' + Math.round(gifSize / 1024) + ' KB（' + (errorPct >= 0 ? '+' : '') + errorPct + '%）',
+      )
+    }
 
     await cdp.evaluate('(function(){ var card = document.querySelector(".media-card"); if (card) card.click(); })()')
     await click(cdp, '[data-testid=batch-convert-button]')
     await waitFor(cdp, '!!document.querySelector("[data-testid=convert-drawer]")', 15000, '转换抽屉(WebP)')
     await click(cdp, '[data-testid=format-tab-webp]')
+    await delay(700)
+    const webpEstimate = await cdp.evaluate(
+      '(function () { var el = document.querySelector("[data-testid=param-estimate-text]"); return el ? { state: el.getAttribute("data-estimate-state"), bytes: Number(el.getAttribute("data-estimate-bytes") || 0), text: el.innerText || "" } : null; })()',
+    )
+    record(
+      'WebP 输出保留经验公式（不触发采样预估）',
+      Boolean(webpEstimate && webpEstimate.state === 'fallback' && webpEstimate.bytes === 0),
+      webpEstimate ? webpEstimate.state + ' / ' + webpEstimate.text : '未找到预估元素',
+    )
     await click(cdp, '[data-testid=start-convert-button]')
     await waitFor(cdp, 'document.querySelectorAll(".result-card").length >= 2', 300000, 'WebP 转换完成')
     await delay(900)

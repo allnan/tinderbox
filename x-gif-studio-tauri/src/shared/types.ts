@@ -176,6 +176,66 @@ export interface GifInfo {
   frameDelaysMs: number[]
 }
 
+/** GIF 体积预估请求：有本地源文件时按目标参数真实采样编码后外推（仅 gifski） */
+export interface GifEstimateRequest {
+  /** 源本地文件路径（mp4/gif 等） */
+  filePath: string
+  /** 目标输出宽高（像素） */
+  width?: number | null
+  height?: number | null
+  /** 目标帧率；null 表示由后端按源探测 */
+  fps?: number | null
+  quality: number
+  /** gifski 自动优化调色板，颜色数目前仅用于请求契约 */
+  colors?: number
+  encoder: 'gifski'
+  durationSec?: number | null
+  frameCount?: number | null
+  /** 预估模式：balanced / precise（fast/off 前端不调用采样预估） */
+  mode?: EstimateMode
+}
+
+/** 采样编码预估结果：estimatedBytes 已按总帧数外推 */
+export interface GifEstimateResult {
+  estimatedBytes: number
+  sampleBytes: number
+  sampleFrames: number
+  parsedFrames: number
+  totalFrames: number
+  runs: number
+  runLength: number
+  /** 样本 A（跨全片均匀连续段）外推值 */
+  runEstimateBytes?: number | null
+  /** 样本 B（首帧 + 中段连续）字节数/帧数与外推值 */
+  midSampleBytes?: number | null
+  midSampleFrames?: number | null
+  midEstimateBytes?: number | null
+  width: number
+  height: number
+  fps: number
+  quality: number
+  elapsedMs: number
+  flags: {
+    /** exact（样本覆盖全部帧）/ hybrid（两个样本融合）/ runs / mid / naive */
+    model: string
+    encoder: string
+    sampled: boolean
+    frameSource: string
+    fpsResampled: boolean
+    frameCountMatched: boolean
+    /** 是否命中进程内结果缓存 */
+    cached?: boolean
+    /** 是否使用输入侧 -ss 分段 seek 抽帧 */
+    seeked?: boolean
+    /** 是否使用代理分辨率双尺度幂律拟合（目标宽度 > 900px） */
+    proxy?: boolean
+    /** 幂律拟合指数 α（proxy=true 时有效） */
+    proxyAlpha?: number | null
+    /** 生效的预估模式（balanced / precise） */
+    mode?: string
+  }
+}
+
 export interface GifResult {
   id: string
   tweetId: string
@@ -222,6 +282,15 @@ export interface HistoryEntry {
 
 /** 界面主题：深色 / 浅色 / 跟随系统 */
 export type ThemeMode = 'dark' | 'light' | 'system'
+
+/**
+ * GIF 体积预估模式：
+ * - fast：不调用采样编码，直接用经验公式（立即出结果，误差较大）
+ * - balanced：默认；采样编码 + 高分辨率代理双尺度（大文件 1–2 秒）
+ * - precise：强制全分辨率采样编码（禁用代理外推，更准但更慢）
+ * - off：关闭预估（抽屉不显示体积估算）
+ */
+export type EstimateMode = 'fast' | 'balanced' | 'precise' | 'off'
 
 /** 网络代理模式：系统代理 / 自定义代理 / 直连（不走代理） */
 export type ProxyMode = 'system' | 'custom' | 'direct'
@@ -279,6 +348,8 @@ export interface AppSettings {
   proxy: ProxySettings
   /** 界面主题（保存后立即生效） */
   theme: ThemeMode
+  /** GIF 体积预估模式（默认 balanced） */
+  estimateMode: EstimateMode
 }
 
 export interface AppInfo {
@@ -377,6 +448,8 @@ export interface DesktopApi {
   }
   gif: {
     convert: (req: ConvertGifRequest) => Promise<OperationResult<GifResult>>
+    /** 真实采样编码预估体积（仅 gifski；源文件缺失或工具失败时返回错误，前端回退经验公式） */
+    estimate: (req: GifEstimateRequest) => Promise<OperationResult<GifEstimateResult>>
     info: (filePath: string) => Promise<OperationResult<GifInfo>>
     exportAs: (filePath: string, defaultName?: string) => Promise<OperationResult<ExportResult>>
     open: (filePath: string) => Promise<OperationResult<true>>

@@ -20,7 +20,7 @@ export interface ResultCardProps {
 
 /** 单个 GIF 结果卡片：预览、体积/尺寸、文件操作与「调整参数再导出」 */
 export function ResultCard({ result, media, authorName, mediaIndex, compact }: ResultCardProps) {
-  const { openGif, revealGif, exportGif, copyGifPath, deleteResult, reencodeResult } = useApp()
+  const { openGif, revealGif, exportGif, copyGifPath, deleteResult, reencodeResult, settings } = useApp()
   const [displayUrl, setDisplayUrl] = useState('')
   const [previewBroken, setPreviewBroken] = useState(false)
   const [summaryOpen, setSummaryOpen] = useState(false)
@@ -74,6 +74,8 @@ export function ResultCard({ result, media, authorName, mediaIndex, compact }: R
 
   const sourceSummary = {
     kindLabel: '动图',
+    // 重新调参导出时用已自动保存的源文件做真实采样体积预估
+    localPath: result.sourceSaved?.filePath ?? null,
     durationSec: result.sourceProbe?.durationSec ?? result.info.durationSec,
     frameCount: result.sourceProbe?.frameCount ?? result.info.frameCount,
     fps: result.sourceProbe?.fps ?? result.info.fps,
@@ -172,6 +174,7 @@ export function ResultCard({ result, media, authorName, mediaIndex, compact }: R
                       sourceHeight={result.sourceProbe?.height ?? result.info.height}
                       sourceSummary={sourceSummary}
                       estimateCalibration={estimateCalibration}
+                      estimateMode={settings.estimateMode}
                       fileNamePreview={fileNamePreview}
                       onChange={(params, preset) => {
                         setDraftParams(params)
@@ -344,6 +347,7 @@ export function ResultCard({ result, media, authorName, mediaIndex, compact }: R
               sourceHeight={result.sourceProbe?.height ?? result.info.height}
               sourceSummary={sourceSummary}
               estimateCalibration={estimateCalibration}
+              estimateMode={settings.estimateMode}
               fileNamePreview={fileNamePreview}
               onChange={(params, preset) => {
                 setDraftParams(params)

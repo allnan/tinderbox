@@ -72,14 +72,60 @@ pub fn invalidate_status_cache() {
     }
 }
 
+// 从 -version 输出中提取纯版本号（如 9.0.2 / 1.32.0 / 1.97）。
+// 不绑定具体版本或具体构建：扫描前几行，取第一个形如 x.y[.z] 的版本段，
+// 自动丢弃 -essentials_build-www.gyan.dev、N-...-git 等构建后缀。
+fn extract_version(text: &str) -> Option<String> {
+    for line in text.lines().take(3) {
+        for raw in line.split_whitespace() {
+            let token = raw.trim_matches(|ch: char| !ch.is_ascii_alphanumeric() && ch != '.' && ch != '-' && ch != '+');
+            let Some(start) = token.find(|ch: char| ch.is_ascii_digit()) else { continue };
+            let candidate = &token[start..];
+            let core: String = candidate
+                .chars()
+                .take_while(|ch| ch.is_ascii_digit() || *ch == '.')
+                .collect();
+            let core = core.trim_end_matches('.');
+            if core.is_empty() {
+                continue;
+            }
+            let parts: Vec<&str> = core.split('.').filter(|part| !part.is_empty()).collect();
+            if parts.len() >= 2 {
+                return Some(parts.join("."));
+            }
+        }
+    }
+    None
+}
+
 async fn version_of(name: &str, args: &[&str]) -> Option<String> {
     let bin = resolve(name)?;
     let result = run_quiet(&bin, args, Duration::from_secs(15)).await.ok()?;
     let text = format!("{}\n{}", result.stdout, result.stderr);
+    if let Some(version) = extract_version(&text) {
+        return Some(version);
+    }
     text.lines()
         .map(|line| line.trim())
         .find(|line| !line.is_empty())
         .map(|line| line.to_string())
+}
+
+#[cfg(test)]
+mod version_tests {
+    use super::extract_version;
+
+    #[test]
+    fn extracts_semver_from_tool_outputs() {
+        assert_eq!(
+            extract_version("ffmpeg version 9.0.2-essentials_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers"),
+            Some("9.0.2".to_string())
+        );
+        assert_eq!(extract_version("gifski 1.32.0"), Some("1.32.0".to_string()));
+        assert_eq!(extract_version("LCDF Gifsicle 1.97"), Some("1.97".to_string()));
+        assert_eq!(extract_version("ffmpeg version 10.1.3-full_build-www.gyan.dev"), Some("10.1.3".to_string()));
+        assert_eq!(extract_version("ffmpeg version 11.0-dev"), Some("11.0".to_string()));
+    }
 }
 
 async fn compute_status() -> ToolStatus {

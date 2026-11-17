@@ -26,6 +26,7 @@ pub fn default_params() -> Value {
 
 pub fn default_settings() -> AppSettings {
     AppSettings {
+        estimate_mode: "balanced".into(),
         output_dir: None,
         cache_dir: None,
         default_params: default_params(),
@@ -41,6 +42,11 @@ fn normalize(input: AppSettings) -> AppSettings {
     let fallback = default_settings();
     let proxy = input.proxy;
     AppSettings {
+        estimate_mode: if ["fast", "balanced", "precise", "off"].contains(&input.estimate_mode.trim().to_lowercase().as_str()) {
+            input.estimate_mode.trim().to_lowercase()
+        } else {
+            "balanced".into()
+        },
         output_dir: clean_dir(input.output_dir),
         cache_dir: clean_dir(input.cache_dir),
         default_params: if input.default_params.is_object() { input.default_params } else { fallback.default_params },
@@ -70,6 +76,30 @@ fn clean_dir(value: Option<String>) -> Option<String> {
     value
         .map(|item| item.trim().to_string())
         .filter(|item| !item.is_empty())
+}
+
+/// 首帧主题：读取已保存设置；跟随系统时读取 Windows 个性化注册表。
+/// 返回 "light" / "dark"，用于窗口背景色和页面启动前的 data-theme。
+pub fn effective_theme() -> &'static str {
+    match load().theme.as_str() {
+        "light" => "light",
+        "dark" => "dark",
+        _ => {
+            #[cfg(windows)]
+            {
+                use winreg::enums::HKEY_CURRENT_USER;
+                use winreg::RegKey;
+                if let Ok(key) = RegKey::predef(HKEY_CURRENT_USER)
+                    .open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+                {
+                    if let Ok(light) = key.get_value::<u32, _>("AppsUseLightTheme") {
+                        return if light == 1 { "light" } else { "dark" };
+                    }
+                }
+            }
+            "dark"
+        }
+    }
 }
 
 pub fn settings_path() -> PathBuf {

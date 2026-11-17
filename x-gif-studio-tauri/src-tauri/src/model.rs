@@ -221,9 +221,16 @@ impl Default for ProxySettings {
     }
 }
 
+fn default_estimate_mode() -> String {
+    "balanced".into()
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
+    /// 体积预估模式：fast（公式）/ balanced（默认采样）/ precise（全分辨率采样）/ off（关闭）
+    #[serde(default = "default_estimate_mode")]
+    pub estimate_mode: String,
     pub output_dir: Option<String>,
     pub cache_dir: Option<String>,
     pub default_params: Json,

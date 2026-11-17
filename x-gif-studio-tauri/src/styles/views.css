@@ -4297,3 +4297,1254 @@
   font-size: 10px;
   font-weight: 400;
 }
+
+/* task-81：设置页宽屏两列；抽屉仍单列；卡片内边距与控件边界 */
+.param-editor,
+.param-editor *,
+.param-main-group,
+.convert-drawer-body {
+  box-sizing: border-box;
+}
+
+.param-main-group,
+.param-editor.is-full .param-main-group {
+  min-width: 0;
+  padding: 12px 14px;
+}
+
+.param-main-head {
+  min-width: 0;
+  gap: 8px;
+}
+
+.param-main-head .segmented {
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+
+.param-main-head .switch {
+  flex: 0 0 auto;
+}
+
+.param-output-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.param-output-label {
+  color: var(--text-1);
+  font-size: 12.5px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.param-encoder-hint {
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: 10.5px;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.param-editor.is-full .param-output-encoder {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+}
+
+.param-editor.is-full .param-output-encoder .param-output-line {
+  width: 100%;
+}
+
+.param-editor.is-full .param-core {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.param-editor.is-full .param-core > [data-group='quality'] {
+  grid-column: 1 / -1;
+}
+
+.param-editor.is-full .param-fps-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.param-editor.is-full .param-fps-motion {
+  min-width: 0;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+
+.param-fps-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.param-fps-main,
+.param-fps-motion,
+.param-quality-main,
+.param-quality-extra {
+  min-width: 0;
+}
+
+.param-fps-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.param-quality-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.param-editor.is-full .param-quality-grid.has-extra {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.param-editor.is-full .param-quality-extra {
+  min-width: 0;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+
+.param-editor.is-full .param-quality-main {
+  min-width: 0;
+}
+
+.param-quality-extra .param-quality-optimize {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.param-editor.is-full .param-quality-extra .param-range {
+  margin-top: 2px;
+}
+
+.param-editor.is-bar .param-core {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.param-editor.is-bar .param-fps-grid,
+.param-editor.is-bar .param-quality-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.param-editor.is-bar .param-fps-motion,
+.param-editor.is-bar .param-quality-extra {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.param-editor.is-bar .param-output-encoder {
+  display: none;
+}
+
+@media (max-width: 1099px) {
+  .param-editor.is-full .param-core {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .param-editor.is-full .param-fps-grid,
+  .param-editor.is-full .param-quality-grid.has-extra {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .param-editor.is-full .param-fps-motion,
+  .param-editor.is-full .param-quality-extra {
+    padding-left: 0;
+    border-left: 0;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .param-editor.is-full .param-output-encoder {
+    align-items: flex-start;
+  }
+
+  .param-encoder-hint {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
+
+/* task-82：设置页真正宽屏（两列面板 + 导出三列），抽屉不受影响 */
+.settings-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.settings-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (min-width: 1600px) {
+  .main-inner:has(.settings-view) {
+    max-width: 1560px;
+  }
+
+  .settings-view .settings-stack {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    max-width: none;
+    align-items: start;
+  }
+
+  .settings-columns {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    align-items: start;
+  }
+
+  .settings-stack > .panel {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .settings-savebar {
+    max-width: none;
+  }
+
+  .param-editor.is-full .param-core {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .param-editor.is-full .param-core > [data-group='quality'] {
+    grid-column: auto;
+  }
+
+  .param-editor.is-full .param-main-group {
+    padding: 14px 16px;
+  }
+
+  .param-editor.is-full .param-output-encoder {
+    padding: 10px 16px;
+  }
+
+  .param-editor.is-full [data-group='size'] .param-main-head {
+    justify-content: flex-start;
+  }
+
+  .param-editor.is-full [data-group='size'] .param-main-head .segmented {
+    margin-left: 4px;
+  }
+
+  .param-editor.is-full .param-fps-side-head {
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  .param-editor.is-full .param-fps-side-head .switch {
+    margin-left: 0;
+  }
+
+  .param-editor.is-full .param-quality-grid.has-extra {
+    gap: 16px;
+  }
+
+  .param-editor.is-full .param-quality-extra {
+    padding-left: 16px;
+  }
+}
+
+/* task-82 三列设置：卡片高度随内容，避免被最高列拉出空洞 */
+.settings-view .param-core {
+  align-items: start;
+}
+.settings-view .param-main-group {
+  align-self: start;
+}
+
+/* task-83：竖屏/窄宽设置页单列居中，代理字段与主题卡自适应，导出三列断点 1200/900 */
+@media (max-width: 1599px) {
+  .main-inner:has(.settings-view) {
+    max-width: none;
+  }
+
+  .settings-view .settings-stack {
+    display: flex;
+    flex-direction: column;
+    max-width: 1040px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .settings-columns {
+    display: flex;
+    flex-direction: column;
+    grid-column: auto;
+  }
+
+  .settings-stack > .panel {
+    grid-column: auto;
+    width: 100%;
+  }
+
+  .settings-savebar {
+    max-width: 1040px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }
+}
+
+.settings-view .theme-mode-row {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.proxy-endpoint-grid {
+  grid-template-columns: minmax(104px, 118px) minmax(0, 1fr) minmax(92px, 118px);
+}
+
+.proxy-endpoint-grid > .field {
+  min-width: 0;
+}
+
+.proxy-endpoint-grid .input {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .proxy-endpoint-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(92px, 118px);
+  }
+
+  .proxy-endpoint-grid > .field:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 899px) {
+  .param-editor.is-full .param-core {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .param-editor.is-full .param-core > [data-group='quality'] {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .param-editor.is-full .param-core {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .param-editor.is-full .param-core > [data-group='quality'] {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1200px) {
+  .param-editor.is-full .param-core {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+
+  .param-editor.is-full .param-core > [data-group='quality'] {
+    grid-column: auto;
+  }
+
+  .param-editor.is-full .param-main-group {
+    padding: 14px 16px;
+  }
+
+  .param-editor.is-full .param-output-encoder {
+    padding: 10px 16px;
+  }
+
+  .param-editor.is-full [data-group='size'] .param-main-head {
+    justify-content: flex-start;
+  }
+
+  .param-editor.is-full [data-group='size'] .param-main-head .segmented {
+    margin-left: 4px;
+  }
+
+  .param-editor.is-full .param-fps-side-head {
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  .param-editor.is-full .param-fps-side-head .switch {
+    margin-left: 0;
+  }
+
+  .param-editor.is-full .param-quality-grid.has-extra {
+    gap: 16px;
+  }
+
+  .param-editor.is-full .param-quality-extra {
+    padding-left: 16px;
+  }
+}
+
+/* task-83 final：设置页全部满宽单列居中；默认导出内部左 01+02 / 右 03 两列 */
+.settings-view > .page-header {
+  width: 100%;
+  max-width: 1140px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.settings-view .settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  max-width: 1140px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.settings-columns,
+.settings-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  width: 100%;
+}
+
+.settings-stack > .panel {
+  width: 100%;
+  grid-column: auto;
+}
+
+.settings-savebar {
+  width: 100%;
+  max-width: 1140px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 900px) {
+  .param-editor.is-full .param-core {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.06fr);
+    grid-template-areas:
+      'size quality'
+      'fps quality';
+    gap: 12px;
+    align-items: start;
+  }
+
+  .param-editor.is-full .param-core > [data-group='size'] {
+    grid-area: size;
+  }
+
+  .param-editor.is-full .param-core > [data-group='fps'] {
+    grid-area: fps;
+  }
+
+  .param-editor.is-full .param-core > [data-group='quality'] {
+    grid-area: quality;
+    grid-column: auto;
+  }
+
+  .param-editor.is-full .param-core > .param-main-group {
+    padding: 14px 16px;
+  }
+
+  .param-editor.is-full .param-output-encoder {
+    padding: 10px 16px;
+  }
+
+  .param-editor.is-full [data-group='size'] .param-main-head {
+    justify-content: flex-start;
+  }
+
+  .param-editor.is-full [data-group='size'] .param-main-head .segmented {
+    margin-left: 4px;
+  }
+
+  .param-editor.is-full .param-fps-side-head {
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  .param-editor.is-full .param-fps-side-head .switch {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 899px) {
+  .param-editor.is-full .param-core {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'size'
+      'fps'
+      'quality';
+  }
+
+  .param-editor.is-full .param-core > [data-group='size'] {
+    grid-area: size;
+  }
+
+  .param-editor.is-full .param-core > [data-group='fps'] {
+    grid-area: fps;
+  }
+
+  .param-editor.is-full .param-core > [data-group='quality'] {
+    grid-area: quality;
+    grid-column: auto;
+  }
+}
+
+/* task-84：设置页默认导出卡片——01|02 第一行，03 跨列第二行；无转换时计算栏 */
+@media (min-width: 900px) {
+  .param-editor.is-full .param-core {
+    grid-template-areas:
+      'size fps'
+      'quality quality';
+    align-items: start;
+  }
+
+  .param-editor.is-full .param-core > [data-group='size'] {
+    grid-area: size;
+  }
+
+  .param-editor.is-full .param-core > [data-group='fps'] {
+    grid-area: fps;
+  }
+
+  .param-editor.is-full .param-core > [data-group='quality'] {
+    grid-area: quality;
+    grid-column: auto;
+  }
+
+  .param-editor.is-full .param-quality-grid.has-extra {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+}
+
+@media (max-width: 899px) {
+  .param-editor.is-full .param-quality-grid.has-extra {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .param-editor.is-full .param-quality-extra {
+    padding-left: 0;
+    border-left: 0;
+    padding-top: 9px;
+    border-top: 1px dashed var(--border);
+  }
+}
+
+.param-settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 2px 0;
+  border-top: 1px dashed var(--border);
+}
+
+.param-settings-note {
+  color: var(--text-3);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.param-settings-reset {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.param-settings-reset:hover {
+  color: var(--text-1);
+}
+
+/* task-84 fix：03 画质跨两列 */
+@media (min-width: 900px) {
+  .param-editor.is-full .param-core > [data-group='quality'] {
+    grid-column: 1 / -1;
+  }
+}
+
+/* task-85：默认导出设置全部单列，不再两列/三列并排 */
+.settings-view .param-editor.is-full .param-core {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.settings-view .param-editor.is-full .param-core > [data-group] {
+  width: 100%;
+  grid-area: auto;
+}
+
+.settings-view .param-editor.is-full .param-fps-grid,
+.settings-view .param-editor.is-full .param-quality-grid.has-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-view .param-editor.is-full .param-fps-motion,
+.settings-view .param-editor.is-full .param-quality-extra {
+  padding-left: 0;
+  border-left: 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+/* task-86：强制设置页参数卡与内部子块满宽，修复 02/03 只占一半 */
+.settings-view .param-editor.is-full .param-core > .param-main-group {
+  align-self: stretch;
+  width: 100%;
+}
+
+.settings-view .param-editor.is-full .param-fps-grid,
+.settings-view .param-editor.is-full .param-quality-grid.has-extra {
+  align-items: stretch;
+  width: 100%;
+}
+
+.settings-view .param-editor.is-full .param-fps-main,
+.settings-view .param-editor.is-full .param-fps-motion,
+.settings-view .param-editor.is-full .param-quality-main,
+.settings-view .param-editor.is-full .param-quality-extra {
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+/* task-85：设置页主参数顺序 01 尺寸 → 02 画质 → 03 帧率与速度，全部满宽 */
+.param-editor.is-full .param-core {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.param-editor.is-full .param-core > [data-group='size'] {
+  order: 1;
+}
+
+.param-editor.is-full .param-core > [data-group='quality'] {
+  order: 2;
+  grid-area: auto;
+  grid-column: auto;
+}
+
+.param-editor.is-full .param-core > [data-group='fps'] {
+  order: 3;
+  grid-area: auto;
+}
+
+.param-editor.is-full .param-fps-head-meta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.param-editor.is-full .param-fps-head-desc {
+  color: var(--text-3);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.param-editor.is-full .param-main-head .param-fps-head-meta .switch {
+  margin-left: 0;
+}
+
+.param-editor.is-full .param-main-group {
+  width: 100%;
+}
+
+/* task-86：恢复设置页 01 尺寸 → 02 帧率与速度 → 03 画质；仅帧率卡内部交换后两项 */
+.settings-view .param-editor.is-full .param-core > [data-group='fps'] {
+  order: 2;
+}
+
+.settings-view .param-editor.is-full .param-core > [data-group='quality'] {
+  order: 3;
+}
+
+/* task-87：设置页与抽屉统一 01 尺寸 → 02 画质 → 03 帧率与速度 */
+.settings-view .param-editor.is-full .param-core > [data-group='size'],
+.convert-drawer .param-editor.is-bar .param-core > [data-group='size'] {
+  order: 1;
+}
+
+.settings-view .param-editor.is-full .param-core > [data-group='quality'],
+.convert-drawer .param-editor.is-bar .param-core > [data-group='quality'] {
+  order: 2;
+  grid-area: auto;
+  grid-column: auto;
+}
+
+.settings-view .param-editor.is-full .param-core > [data-group='fps'],
+.convert-drawer .param-editor.is-bar .param-core > [data-group='fps'] {
+  order: 3;
+  grid-area: auto;
+}
+
+/* ==========================================================================
+   设置页 · 体积预估模式
+   ========================================================================== */
+
+.estimate-mode-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.estimate-mode-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.estimate-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-panel-2);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, transform 0.12s var(--ease);
+  min-width: 0;
+}
+
+.estimate-mode:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.estimate-mode.is-active {
+  border-color: var(--accent-border);
+  background: linear-gradient(150deg, var(--accent-soft), var(--bg-panel-2) 72%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.estimate-mode-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-1);
+}
+
+.estimate-mode-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.estimate-mode-desc {
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.estimate-mode-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--bg-panel-2);
+}
+
+.estimate-mode-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.estimate-mode-table th,
+.estimate-mode-table td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.estimate-mode-table thead th {
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--bg-panel-2) 70%, var(--bg-panel) 30%);
+}
+
+.estimate-mode-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.estimate-mode-table td:first-child {
+  color: var(--text-1);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.estimate-mode-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+@media (max-width: 1180px) {
+  .estimate-mode-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* task-90：体积预估表与四张模式卡等宽对齐 */
+.estimate-mode-table {
+  table-layout: fixed;
+}
+
+.estimate-mode-table th,
+.estimate-mode-table td {
+  width: 25%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.param-control-hint {
+  margin-left: 8px;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* 体积预估表：耗时与误差分级显示，避免同字号同颜色难以区分 */
+.estimate-mode-table td {
+  vertical-align: middle;
+}
+
+.estimate-time {
+  display: inline-block;
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.estimate-error {
+  display: inline-block;
+  margin-left: 9px;
+  color: var(--text-3);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* 尺寸滑杆 Shift 精细拖动：覆盖层接管指针，按相对位移调整 */
+.param-range-shell {
+  position: relative;
+  width: 100%;
+}
+
+.param-range-fine-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+/* 尺寸数值：滑杆粗调 + 数字直接输入/±1 精确调整 */
+.param-size-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+}
+
+.param-size-step {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel-2);
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.param-size-step:hover:not(:disabled) {
+  border-color: var(--accent-border);
+  color: var(--text-1);
+}
+
+.param-size-step:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.param-size-value {
+  min-width: 56px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px dashed transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  cursor: text;
+}
+
+.param-size-value:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-panel-2);
+}
+
+.param-size-edit {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 4px 0 6px;
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.param-size-edit input {
+  width: 48px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  appearance: textfield;
+}
+
+.param-size-edit input::-webkit-outer-spin-button,
+.param-size-edit input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* task-91：02 画质 / 03 帧率与速度 分区显示，增加呼吸感 */
+.param-fps-main,
+.param-quality-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.param-fps-motion,
+.param-quality-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+
+.settings-view .param-editor.is-full .param-fps-grid,
+.settings-view .param-editor.is-full .param-quality-grid.has-extra {
+  gap: 16px;
+}
+
+.settings-view .param-editor.is-full .param-fps-motion,
+.settings-view .param-editor.is-full .param-quality-extra {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.settings-view .param-editor.is-full .param-quality-extra {
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+
+.param-quality-main .param-inline-note {
+  margin-top: -2px;
+}
+
+/* 滑杆操作提示：放到控件下方，完整显示、不挤标签 */
+.param-control-hint-line {
+  margin-top: 4px;
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* 体积预估表：规格与预估大小 */
+.estimate-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.estimate-profile-title {
+  color: var(--text-1);
+  font-weight: 500;
+}
+
+.estimate-profile-size {
+  color: var(--text-3);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+/* task-92：去掉 02/03 卡片内重复的分隔虚线，只保留父级一条 */
+.param-fps-motion > .param-compact-switch,
+.param-quality-extra > .param-quality-optimize {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* task-93：参数卡改成「标题区 + 子项行」，主项/子项层级清晰 */
+.settings-view .param-editor.is-full .param-main-group {
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg-panel);
+}
+
+.settings-view .param-editor.is-full .param-main-group > .param-main-head {
+  margin: 0;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-panel-2) 62%, var(--bg-panel));
+}
+
+.settings-view .param-editor.is-full .param-main-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.settings-view .param-editor.is-full .param-main-group .param-control-label {
+  color: var(--text-1);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.settings-view .param-editor.is-full .param-control-sub,
+.settings-view .param-editor.is-full .param-inline-note {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.settings-view .param-editor.is-full .param-fps-grid,
+.settings-view .param-editor.is-full .param-quality-grid {
+  padding: 0 16px 12px;
+  gap: 0;
+}
+
+.settings-view .param-editor.is-full .param-fps-main,
+.settings-view .param-editor.is-full .param-quality-main {
+  gap: 8px;
+  padding: 13px 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-view .param-editor.is-full .param-fps-motion,
+.settings-view .param-editor.is-full .param-quality-extra {
+  gap: 12px;
+  margin-top: 0;
+  padding: 12px 0 0;
+  border-top: 0;
+}
+
+.settings-view .param-editor.is-full .param-fps-motion > .param-compact-switch,
+.settings-view .param-editor.is-full .param-quality-extra > .param-quality-optimize {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.settings-view .param-editor.is-full .param-quality-grid > :last-child,
+.settings-view .param-editor.is-full .param-fps-grid > :last-child {
+  border-bottom: 0;
+}
+
+.settings-view .param-editor.is-full .param-size-card > .param-control-row,
+.settings-view .param-editor.is-full .param-size-card > .param-readonly-dims {
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+.settings-view .param-editor.is-full .param-size-card > .param-control-row {
+  margin-top: 13px;
+}
+
+.settings-view .param-editor.is-full .param-size-card > .param-readonly-dims {
+  margin-top: 12px;
+  margin-bottom: 14px;
+}
+
+/* task-94：03 帧率开关移到内容行，去掉标题区重复说明和空白 */
+.settings-view .param-editor.is-full .param-fps-side-head {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.settings-view .param-editor.is-full .param-fps-main {
+  padding-bottom: 10px;
+}
+
+/* task-95：02/03 子项行统一分隔线，播放速度与上一行分开 */
+.param-fps-motion > .param-control-row,
+.param-quality-extra > .param-control-row {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* task-96：参数卡片统一「设置行」系统 */
+.param-card-body {
+  padding: 0 18px 16px;
+}
+
+.param-set {
+  padding: 14px 0;
+}
+
+.param-set + .param-set {
+  border-top: 1px solid var(--border);
+}
+
+.param-set:last-child {
+  padding-bottom: 2px;
+}
+
+.param-set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.param-set-label {
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.param-set-value {
+  margin-top: 6px;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.param-set-desc {
+  margin-top: 4px;
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.param-set .param-control-label {
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.param-set .param-control-value {
+  font-size: 13px;
+}
+
+.param-set .param-control-hint-line {
+  margin-top: 2px;
+}
+
+.param-set .param-control-row {
+  padding: 0;
+  border: 0;
+}
+
+.param-set .param-readonly-dims {
+  margin-top: 12px;
+}
+
+.param-set .param-control-row + .param-set-desc {
+  margin-top: 6px;
+}
+
+.param-set .param-control-row + .param-range,
+.param-set .param-set-value + .param-range {
+  margin-top: 8px;
+}
+
+/* task-97：01 尺寸卡片在设置页的边框被级联覆盖，显式补回，保证与 02/03 一致 */
+.settings-view .param-editor.is-full .param-main-group.param-size-card {
+  border: 1px solid var(--border);
+}
+
+/* task-98：加大顶层卡片间距，01 尺寸卡与上方编码器卡边界更清楚 */
+.settings-view .param-editor.is-full {
+  gap: 16px;
+}
+
+.settings-view .param-editor.is-full .param-core {
+  gap: 14px;
+}
+
+/* 优化体积与其从属项（有损强度）同组，只用间距区分，不加分隔线 */
+.param-set-option-detail {
+  margin-top: 14px;
+}

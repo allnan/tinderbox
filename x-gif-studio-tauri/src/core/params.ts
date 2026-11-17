@@ -141,11 +141,11 @@ export function presetWidthForSource(
   if (width === null || height === null || cap === null || width <= 0 || height <= 0) return null
   const longSide = Math.max(width, height)
   const rawWidth = width * Math.min(1, cap / longSide)
-  const even = Math.max(2, Math.round(rawWidth / 2) * 2)
-  // 源媒体本身不超过上限时保持原始宽度；奇数源宽向下取偶数，避免放大
-  const evenSource = Math.max(PARAM_LIMITS.widthMin, width % 2 === 0 ? width : width - 1)
-  if (longSide <= cap) return evenSource
-  return Math.max(PARAM_LIMITS.widthMin, even)
+  // 像素模式要求「输入多少最长边，输出就是多少」，因此宽度不再强取偶数。
+  const rounded = Math.max(2, Math.round(rawWidth))
+  // 源媒体本身不超过上限时保持原始宽度，避免放大
+  if (longSide <= cap) return Math.max(PARAM_LIMITS.widthMin, Math.round(width))
+  return Math.max(PARAM_LIMITS.widthMin, rounded)
 }
 
 /** 百分比（10-100）→ 输出 px：按源宽换算、四舍五入到偶数、不超过源宽 */

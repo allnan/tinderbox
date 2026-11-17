@@ -1,4 +1,4 @@
-import type { AppSettings, ProxyMode, ProxySettings, ThemeMode } from '../shared/types'
+import type { AppSettings, EstimateMode, ProxyMode, ProxySettings, ThemeMode } from '../shared/types'
 import { GIF_PRESETS } from '../shared/presets'
 import { normalizeParams } from './params'
 
@@ -14,6 +14,22 @@ export const PROXY_MODES: ProxyMode[] = ['system', 'custom', 'direct']
 
 /** 合法的界面主题（白名单） */
 export const THEME_MODES: ThemeMode[] = ['dark', 'light', 'system']
+
+/** 合法的体积预估模式（白名单） */
+export const ESTIMATE_MODES: EstimateMode[] = ['fast', 'balanced', 'precise', 'off']
+
+/** 体积预估模式归一：非法/缺失回退 balanced（与主进程 settings.rs 一致） */
+export function normalizeEstimateMode(value: unknown): EstimateMode {
+  return value === 'fast' || value === 'precise' || value === 'off' || value === 'balanced' ? value : 'balanced'
+}
+
+/** 体积预估模式中文名（界面展示用） */
+export function estimateModeLabel(mode: EstimateMode | null | undefined): string {
+  if (mode === 'fast') return '快速'
+  if (mode === 'precise') return '精确'
+  if (mode === 'off') return '关闭'
+  return '平衡'
+}
 
 /** 主题归一：非法/缺失回退 dark（与主进程 electron/lib/settings.cjs 一致） */
 export function normalizeThemeMode(value: unknown): ThemeMode {
@@ -178,6 +194,7 @@ export function defaultSettings(): AppSettings {
     maxCacheSizeMb: 4096,
     proxy: defaultProxySettings(),
     theme: 'dark',
+    estimateMode: 'balanced',
   }
 }
 
@@ -210,6 +227,7 @@ export function normalizeSettings(input: Partial<AppSettings> | null | undefined
       : fallback.maxCacheSizeMb,
     proxy: normalizeProxySettings(raw.proxy),
     theme: normalizeThemeMode(raw.theme),
+    estimateMode: normalizeEstimateMode(raw.estimateMode),
   }
 }
 
@@ -223,7 +241,8 @@ export function settingsEqual(a: AppSettings, b: AppSettings): boolean {
     a.maxCacheSizeMb === b.maxCacheSizeMb &&
     JSON.stringify(a.defaultParams) === JSON.stringify(b.defaultParams) &&
     JSON.stringify(normalizeProxySettings(a.proxy)) === JSON.stringify(normalizeProxySettings(b.proxy)) &&
-    normalizeThemeMode(a.theme) === normalizeThemeMode(b.theme)
+    normalizeThemeMode(a.theme) === normalizeThemeMode(b.theme) &&
+    normalizeEstimateMode(a.estimateMode) === normalizeEstimateMode(b.estimateMode)
   )
 }
 

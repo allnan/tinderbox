@@ -7,6 +7,7 @@
 
 mod commands;
 mod convert;
+mod estimate;
 mod history;
 mod http;
 mod jobs;
@@ -20,7 +21,8 @@ mod settings;
 mod tools;
 mod tweet;
 
-/// 创建主窗口：参数来自 tauri.conf.json；设置 XGIF_TAURI_DEBUG_PORT 时额外开放 WebView2 远程调试端口（仅本地截图验证用）。
+/// 创建主窗口：参数来自 tauri.conf.json；先读取已保存主题设置首帧背景与 data-theme，避免启动闪烁。
+/// 设置 XGIF_TAURI_DEBUG_PORT 时额外开放 WebView2 远程调试端口（仅本地截图验证用）。
 fn create_main_window(app: &tauri::App) -> tauri::Result<()> {
     let window_config = app
         .config()
@@ -32,6 +34,18 @@ fn create_main_window(app: &tauri::App) -> tauri::Result<()> {
         .expect("tauri.conf.json 缺少 label 为 main 的窗口配置");
 
     let mut builder = tauri::WebviewWindowBuilder::from_config(app.handle(), &window_config)?;
+
+    // 首帧主题：window 背景色 + initialization script，在 CSS/React 之前生效，
+    // 避免深色主题先闪白、浅色主题先闪黑。
+    let initial_theme = settings::effective_theme();
+    let background = if initial_theme == "light" {
+        tauri::utils::config::Color(243, 245, 249, 255)
+    } else {
+        tauri::utils::config::Color(10, 13, 19, 255)
+    };
+    builder = builder
+        .background_color(background)
+        .initialization_script(format!("window.__XGIF_INITIAL_THEME__ = '{initial_theme}';"));
 
     if let Ok(port) = std::env::var("XGIF_TAURI_DEBUG_PORT") {
         let port = port.trim();
@@ -79,6 +93,7 @@ fn main() {
             commands::gif_reveal,
             commands::gif_remove,
             commands::gif_copy_path,
+            commands::gif_estimate,
             commands::history_list,
             commands::history_get,
             commands::history_remove,

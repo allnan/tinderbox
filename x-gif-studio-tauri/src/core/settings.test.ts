@@ -8,6 +8,8 @@ import {
   defaultSettings,
   effectiveCacheDir,
   effectiveOutputDir,
+  estimateModeLabel,
+  normalizeEstimateMode,
   normalizeProxySettings,
   normalizeSettings,
   normalizeThemeMode,
@@ -31,6 +33,7 @@ describe('defaultSettings', () => {
     expect(settings.defaultParams).toEqual(DEFAULT_PARAMS)
     expect(settings.proxy).toEqual(defaultProxySettings())
     expect(settings.theme).toBe('dark')
+    expect(settings.estimateMode).toBe('balanced')
   })
 
   test('代理默认值：系统代理 + 本机回环直连 + 空凭据', () => {
@@ -72,6 +75,33 @@ describe('normalizeSettings', () => {
   test('非布尔 keepOriginalMp4 回退默认', () => {
     expect(normalizeSettings({ keepOriginalMp4: 'yes' as never }).keepOriginalMp4).toBeTruthy()
     expect(normalizeSettings({ keepOriginalMp4: false }).keepOriginalMp4).toBeFalsy()
+  })
+})
+
+describe('normalizeEstimateMode / estimateModeLabel', () => {
+  test('合法模式保留，非法/缺失回退 balanced', () => {
+    expect(normalizeEstimateMode('fast')).toBe('fast')
+    expect(normalizeEstimateMode('balanced')).toBe('balanced')
+    expect(normalizeEstimateMode('precise')).toBe('precise')
+    expect(normalizeEstimateMode('off')).toBe('off')
+    expect(normalizeEstimateMode('nope')).toBe('balanced')
+    expect(normalizeEstimateMode(null)).toBe('balanced')
+  })
+
+  test('normalizeSettings 归一 estimateMode', () => {
+    expect(normalizeSettings({ estimateMode: 'precise' }).estimateMode).toBe('precise')
+    expect(normalizeSettings({ estimateMode: 'fast' }).estimateMode).toBe('fast')
+    expect(normalizeSettings({ estimateMode: 'off' }).estimateMode).toBe('off')
+    expect(normalizeSettings({ estimateMode: 'nope' as never }).estimateMode).toBe('balanced')
+    expect(normalizeSettings({}).estimateMode).toBe('balanced')
+  })
+
+  test('模式中文名', () => {
+    expect(estimateModeLabel('fast')).toBe('快速')
+    expect(estimateModeLabel('precise')).toBe('精确')
+    expect(estimateModeLabel('off')).toBe('关闭')
+    expect(estimateModeLabel('balanced')).toBe('平衡')
+    expect(estimateModeLabel(null)).toBe('平衡')
   })
 })
 
@@ -242,6 +272,7 @@ describe('settingsEqual / 生效目录', () => {
     expect(settingsEqual(a, b)).toBeTruthy()
     expect(settingsEqual(a, { ...b, defaultParams: { ...b.defaultParams, quality: 60 } })).toBeFalsy()
     expect(settingsEqual(a, { ...b, maxCacheSizeMb: 2048 })).toBeFalsy()
+    expect(settingsEqual(a, { ...b, estimateMode: 'precise' })).toBeFalsy()
   })
 
   test('代理字段变化会被识别为不同', () => {

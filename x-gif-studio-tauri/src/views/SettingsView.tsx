@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import type {
   AppSettings,
+  EstimateMode,
   ProxyCheck,
   ProxyMode,
   ProxySettings,
@@ -17,6 +18,7 @@ import {
   buildProxyFormUrl,
   effectiveCacheDir,
   effectiveOutputDir,
+  estimateModeLabel,
   normalizeProxySettings,
   normalizeSettings,
   parseProxyUrl,
@@ -49,6 +51,45 @@ const TOOL_INFO: { key: 'ffmpeg' | 'gifski' | 'gifsicle'; label: string; purpose
   { key: 'gifsicle', label: 'gifsicle', purpose: 'GIF 极限压缩优化（仅 GIF 输出可用）' },
 ]
 
+const ESTIMATE_MODE_OPTIONS: { value: EstimateMode; label: string; desc: string; icon: IconName }[] = [
+  {
+    value: 'off',
+    label: '关闭',
+    desc: '不显示体积预估；转换抽屉底部不再出现 ≈ 体积提示。',
+    icon: 'eye-off',
+  },
+  {
+    value: 'fast',
+    label: '快速',
+    desc: '不调用采样编码，直接用公式估算，立即出结果；误差较大（约 ±30–50%）。',
+    icon: 'bolt',
+  },
+  {
+    value: 'balanced',
+    label: '平衡（推荐）',
+    desc: '采样编码 + 高分辨率代理拟合；大文件 1–2 秒，通常误差约 ±10–15%。',
+    icon: 'sliders',
+  },
+  {
+    value: 'precise',
+    label: '精确',
+    desc: '强制全分辨率采样编码（禁用代理外推）；更准但更慢，1080p 约 2 秒、4K 约 5 秒。',
+    icon: 'sparkles',
+  },
+]
+
+interface EstimateReferenceCell {
+  time: string
+  error: string
+}
+
+const ESTIMATE_REFERENCE_ROWS: { profile: string; size: string; fast: EstimateReferenceCell; balanced: EstimateReferenceCell; precise: EstimateReferenceCell }[] = [
+  { profile: '480p · 30帧', size: '≈ 1–2 MB', fast: { time: '0 s', error: '±30–50%' }, balanced: { time: '1–2 s', error: '约 ±10%' }, precise: { time: '2–4 s', error: '约 ±5%' } },
+  { profile: '720p · 30帧', size: '≈ 2–4 MB', fast: { time: '0 s', error: '±30–50%' }, balanced: { time: '1–3 s', error: '约 ±10%' }, precise: { time: '2–5 s', error: '约 ±5%' } },
+  { profile: '720p · 60帧', size: '≈ 4–8 MB', fast: { time: '0 s', error: '±30–50%' }, balanced: { time: '2–4 s', error: '约 ±12%' }, precise: { time: '3–6 s', error: '约 ±7%' } },
+  { profile: '1080p · 60帧', size: '≈ 8–15 MB', fast: { time: '0 s', error: '±30–50%' }, balanced: { time: '2–5 s', error: '约 ±12%' }, precise: { time: '4–8 s', error: '约 ±7%' } },
+  { profile: '1080p · 90帧', size: '≈ 12–22 MB', fast: { time: '0 s', error: '±30–50%' }, balanced: { time: '3–6 s', error: '约 ±12%' }, precise: { time: '5–10 s', error: '约 ±7%' } },
+]
 const PROXY_MODE_OPTIONS: { value: ProxyMode; label: string; desc: string; icon: IconName }[] = [
   { value: 'system', label: '系统代理', desc: '跟随 Windows 系统代理设置（默认）', icon: 'monitor' },
   { value: 'custom', label: '自定义代理', desc: '手动填写 HTTP / HTTPS / SOCKS5 地址', icon: 'sliders' },
@@ -443,6 +484,8 @@ export default function SettingsView() {
       ) : null}
 
       <div className="settings-stack">
+        <div className="settings-columns">
+          <div className="settings-column settings-column-left">
         <Panel
           title="外部工具"
           subtitle={tools ? (tools.ready ? '3/3 可用，可以开始转换' : `${readyCount}/3 可用，下载缺失组件后即可开始转换`) : '正在读取工具状态…'}
@@ -512,6 +555,8 @@ export default function SettingsView() {
           </div>
         </Panel>
 
+          </div>
+          <div className="settings-column settings-column-right">
         <Panel
           title="网络代理"
           subtitle="X 链接解析、视频/图片下载与界面缩略图都会经过该代理；保存后立即生效，无需重启"
@@ -838,6 +883,9 @@ export default function SettingsView() {
           </div>
         </Panel>
 
+          </div>
+        </div>
+
         <Panel title="默认导出设置" subtitle="新建导出任务时沿用这里的设置">
           <ParamPanel
             params={draft.defaultParams}
@@ -846,6 +894,63 @@ export default function SettingsView() {
               updateDraft({ defaultParams: params, ...(preset ? { defaultPresetId: preset } : {}) })
             }
           />
+        </Panel>
+
+        <Panel
+          title="体积预估"
+          subtitle="转换抽屉底部「预估体积」的精度与速度；修改后保存生效"
+          actions={<span className="badge badge-accent">{estimateModeLabel(draft.estimateMode)}</span>}
+        >
+          <div className="estimate-mode-panel" data-testid="estimate-mode-panel">
+            <div className="estimate-mode-row" role="radiogroup" aria-label="体积预估模式">
+              {ESTIMATE_MODE_OPTIONS.map((option) => {
+                const active = draft.estimateMode === option.value
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    data-testid={'estimate-mode-' + option.value}
+                    className={active ? 'estimate-mode is-active' : 'estimate-mode'}
+                    onClick={() => updateDraft({ estimateMode: option.value })}
+                  >
+                    <span className="estimate-mode-head">
+                      <Icon name={option.icon} size={14} />
+                      <span className="estimate-mode-title">{option.label}</span>
+                    </span>
+                    <span className="estimate-mode-desc">{option.desc}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="estimate-mode-table-wrap">
+              <table className="estimate-mode-table">
+                <thead>
+                  <tr>
+                    <th scope="col">GIF 输出规格（分辨率 · 帧数）</th>
+                    <th scope="col">快速</th>
+                    <th scope="col">平衡</th>
+                    <th scope="col">精确</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ESTIMATE_REFERENCE_ROWS.map((row) => (
+                    <tr key={row.profile}>
+                      <td><span className="estimate-profile"><span className="estimate-profile-title">{row.profile}</span><span className="estimate-profile-size">{row.size}</span></span></td>
+                      <td><span className="estimate-time">{row.fast.time}</span><span className="estimate-error">误差 {row.fast.error}</span></td>
+                      <td><span className="estimate-time">{row.balanced.time}</span><span className="estimate-error">误差 {row.balanced.error}</span></td>
+                      <td><span className="estimate-time">{row.precise.time}</span><span className="estimate-error">误差 {row.precise.error}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="estimate-mode-note">
+                <Icon name="info" size={13} />
+                <span>大小按默认质量 92、常见内容估算，随画质/内容浮动；耗时为普通电脑冷启动参考，缓存命中通常 1 秒内，源越长/机器越慢会超过表中时间。</span>
+              </div>
+            </div>
+          </div>
         </Panel>
 
         <Panel title="关于">

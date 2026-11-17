@@ -11,6 +11,8 @@
 - **真实 GIF / WebP 转换**：
   - GIF：ffmpeg 抽全部帧（fps=source 时 `-fps_mode passthrough`，不重采样）→ gifski 编码 → 按源 MP4 的 stts 逐帧时长写回 GIF 延时（厘秒、最小 2cs）→ 可选 gifsicle 压缩；
   - WebP：ffmpeg concat + `libwebp_anim` 编码 → 改写 WebP ANMF 逐帧时长；
+  - 体积预估：转换抽屉里对已保存的源媒体按当前尺寸/帧率/gifski 质量真实采样编码（约 1/3 帧、最多 12 帧）后外推，替代固定 bpp 公式（WebP/ffmpeg 编码仍显示公式估算）；大文件用分段 `-ss` seek + A/B 并发 + 进程内缓存；高分辨率（目标 >900px）再用两档代理分辨率（800/1120）按 `size = k·pixels^α` 幂律拟合外推（异常自动回退全分辨率）。实测 1080p/60s 约 1.2 秒、4K/20s 约 1.5 秒、缓存命中 <10ms；
+  - 体积预估模式：设置页可选快速（公式）/ 平衡（默认，采样 + 代理拟合）/ 精确（全分辨率采样）/ 关闭，`AppSettings.estimateMode` 持久化；抽屉按模式显示或隐藏预估；
   - 参数、输出目录命名、历史结果与既有数据契约一致；
 - **外部工具状态与一键下载**：真实检测 ffmpeg / gifski / gifsicle，可从官方/推荐源下载 ZIP、解压、校验并安装到 exe 同级 tools/；
 - **设置与历史**：真实读写 userdata/settings.json 与 history.json（原子写入 + .bak 备份）；
@@ -25,25 +27,27 @@
 - `scripts/tauri-shim.js` 用 `window.desktop` 实现 DesktopApi，所有调用通过 Tauri invoke 进入 Rust 命令；
 - 项目已自包含，不依赖任何外部桌面工程或产物。
 
-## 真实体积对比（2026-11-15 实测）
+## 真实体积对比（2026-11-16 实测）
 
 | 项目 | 大小 | 说明 |
 | --- | --- | --- |
-| Tauri exe 本体 | 4,925,440 B（4.70 MiB） | 含 Rust 后端与内嵌前端，不含外部转换工具 |
+| Tauri exe 本体 | 5,021,696 B（4.79 MiB） | 含 Rust 后端与内嵌前端，不含外部转换工具 |
 | 外部工具（首次使用下载到 tools/） | 107,056,576 B（102.1 MiB） | ffmpeg 9.0.2 + gifski 1.32.0 + gifsicle 1.97 |
-| Tauri 完整磁盘占用近似值 | 约 107.3 MiB | exe + tools，无需打包 Electron 运行时 |
+| Tauri 完整磁盘占用近似值 | 约 106.8 MiB | exe + tools，无需打包 Electron 运行时 |
 
 
-结论：exe 本体只有 4.69 MiB，不打包 Chromium；但完整转换功能需要 ffmpeg 等外部工具（102.1 MiB），所以首次下载工具后，完整磁盘占用约 107.3 MiB。优势是 exe 本体小、工具按需下载、无 Chromium 运行时。
+结论：exe 本体只有 4.78 MiB，不打包 Chromium；但完整转换功能需要 ffmpeg 等外部工具（102.1 MiB），所以首次下载工具后，完整磁盘占用约 107.3 MiB。优势是 exe 本体小、工具按需下载、无 Chromium 运行时。
 
-> SHA256：`510A69D3A66744BB2D033082FF92DD7898F24DF5349BAFF4D9F560108F4A8BFE`
+> SHA256：`8BE5C9E2F287F216E788652D98CB69432D74E9A8AA46A677A120FF5B03AE11B0`
 
-## 真实功能验证（2026-11-15）
+## 真实功能验证（2026-11-16）
 
-自动验证脚本 `npm run capture` 启动 release exe，通过 WebView2 远程调试协议驱动真实界面，**12/12 项通过**：
+自动验证脚本 `npm run capture` 启动 release exe，通过 WebView2 远程调试协议驱动真实界面，**15/15 项通过**：
 
 - 真实解析公开推文 [@CaptainAmerica/status/719944021058060289](https://x.com/CaptainAmerica/status/719944021058060289)（真实作者、正文、缩略图、1 个视频媒体）；
 - 真实下载并保存原始媒体：`userdata/media/CaptainAmerica/719944021058060289/CaptainAmerica_719944021058060289_1_1280x720.mp4`（537,709 B）；
+- 转换抽屉显示真实采样体积预估（≈ 14 MB / 14,637,104 B），与实际 GIF 误差 +12.1%（WebP 仍为经验公式）；
+- 体积预估模式：设置页四模式可选中/保存持久化；balanced 1080p 1.5s/4K 2.1s（+1.2%/+2.5%），precise 禁用代理 1080p 2.7s/4K 7.4s（−2.4%/−0.2%）；抽屉 fast 显示公式值、off 不显示 ≈ 体积；
 - 真实转出 GIF：1280×720、76 帧、3.2 秒、12.45 MiB（ffmpeg 校验为真实 gif 视频流）；
 - 真实转出 WebP：1280×720、动画 webp_anim、3.84 MiB（ffmpeg 校验通过）；
 - 真实保存推文图片：NASA 推文图片 `NASA_2121280846183137564_1_1280x1058.jpg`（91,634 B）；
@@ -71,6 +75,16 @@
 | 图片推文保存 | 外部工具下载 |
 | --- | --- |
 | ![图片推文](docs/assets/screenshots/real-09-photo-tweet.png) | ![工具下载](docs/assets/screenshots/real-10-tool-download.png) |
+
+体积预估模式（fast / balanced / off；balanced 即转换抽屉截图）：
+
+| 设置页 · 体积预估模式 | 转换抽屉 · 快速模式 |
+| --- | --- |
+| ![体积预估设置](docs/assets/screenshots/real-11-estimate-settings.png) | ![快速模式](docs/assets/screenshots/real-12-estimate-fast.png) |
+
+| 转换抽屉 · 关闭预估 | |
+| --- | --- |
+| ![关闭预估](docs/assets/screenshots/real-13-estimate-off.png) | |
 
 ## 运行环境
 
@@ -135,4 +149,5 @@ npm run capture           # 真实功能验证与截图（需要 tools/ 中的�
 - 另存为/打开/定位依赖系统对话框与资源管理器，未纳入自动验证；
 - 任务取消会终止 ffmpeg/gifski 进程树，取消路径未纳入自动验证；
 - 外部工具一键下载只验证了 gifski 的真实下载链路，ffmpeg/gifsicle 使用相同的下载/解压/校验代码但未重新下载验证（本机已有工具）；
+- GIF 体积预估需要源媒体已保存到本地且使用 gifski 编码；WebP/ffmpeg 编码、没有本地源时仍显示经验公式，采样预估本身也有约 10% 量级误差；
 - exe 未签名，SmartScreen 可能提示未知发布者。

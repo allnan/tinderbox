@@ -17,6 +17,8 @@ const projectRoot = path.resolve(scriptDir, '..')
 const targetDist = path.join(projectRoot, 'dist')
 const shimSource = path.join(scriptDir, 'tauri-shim.js')
 const shimTarget = path.join(targetDist, 'tauri-shim.js')
+const themeBootSource = path.join(scriptDir, 'theme-boot.js')
+const themeBootTarget = path.join(targetDist, 'theme-boot.js')
 const indexPath = path.join(targetDist, 'index.html')
 const APP_SCRIPT_TAG = '<script src="./assets/app.js"></script>'
 const SHIM_SCRIPT_TAG = '<script src="./tauri-shim.js"></script>'
@@ -47,4 +49,5 @@ if (!html.includes(SHIM_SCRIPT_TAG)) {
 await writeFile(indexPath, html, 'utf8')
 
 await copyFile(shimSource, shimTarget)
+await copyFile(themeBootSource, themeBootTarget)
 log('已注入 tauri-shim.js，并完成前端构建')

@@ -6,6 +6,8 @@ export type {
   DitherMode,
   ExportResult,
   GifEncoder,
+  GifEstimateRequest,
+  GifEstimateResult,
   GifInfo,
   GifParams,
   GifPreset,

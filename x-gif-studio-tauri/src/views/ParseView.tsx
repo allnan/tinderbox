@@ -68,13 +68,14 @@ function SourceReference({ first, count, index, probe, saved }) {
             </dl>
         </div>);
 }
-function buildParamSourceSummary(targets, results, savedMedia, fallbackProbe) {
+function buildParamSourceSummary(targets, results, savedMedia, fallbackProbe, fallbackPath) {
     const first = targets[0];
     if (!first)
         return null;
     const probeOf = (media) => results.find((result) => result.mediaId === media.id)?.sourceProbe ?? null;
     const probe = probeOf(first) ?? fallbackProbe ?? first.probe ?? null;
     const saved = (0, media_actions_1.findSavedMedia)(savedMedia, first.id);
+    const previous = results.find((result) => result.mediaId === first.id);
     const fpsValues = targets.map((media) => probeOf(media)?.fps).filter((value) => typeof value === 'number' && value > 0);
     if (typeof probe?.fps === 'number' && probe.fps > 0 && fpsValues.length === 0)
         fpsValues.push(probe.fps);
@@ -82,6 +83,7 @@ function buildParamSourceSummary(targets, results, savedMedia, fallbackProbe) {
     return {
         kindLabel: (0, tweet_1.mediaKindLabel)(first.kind),
         kind: first.kind,
+        localPath: (previous && previous.sourceSaved && previous.sourceSaved.filePath) || saved?.filePath || fallbackPath || null,
         durationSec: probe?.durationSec ?? saved?.durationSec ?? first.durationSec ?? null,
         frameCount: probe?.frameCount ?? null,
         fps: probe?.fps ?? null,
@@ -99,7 +101,8 @@ function buildParamEstimateCalibration(targets, results) {
     const first = targets[0];
     if (!first)
         return null;
-    const result = results.find((item) => item.mediaId === first.id);
+    // 只使用 GIF 结果校准：WebP 体积/帧率与 GIF 完全不同，会污染公式估算（快速模式直接可见）。
+    const result = results.find((item) => item.mediaId === first.id && (item.format ?? 'gif') === 'gif');
     if (!result || !result.info)
         return null;
     return {
@@ -126,6 +129,7 @@ function ParseView() {
     const [animFormat, setAnimFormat] = (0, react_1.useState)('gif');
     const [drawerProbe, setDrawerProbe] = (0, react_1.useState)(null);
     const [drawerHistoryProbe, setDrawerHistoryProbe] = (0, react_1.useState)(null);
+    const [drawerHistoryPath, setDrawerHistoryPath] = (0, react_1.useState)(null);
     const [convertTarget, setConvertTarget] = (0, react_1.useState)(null);
     const inputRef = (0, react_1.useRef)(null);
     const settingsApplied = (0, react_1.useRef)(false);
@@ -181,6 +185,7 @@ function ParseView() {
     const drawerTargetKey = drawerTargets.map((media) => media.id).join('|');
     (0, react_1.useEffect)(() => {
         setDrawerHistoryProbe(null);
+        setDrawerHistoryPath(null);
         if (!convertTarget || drawerTargets.length === 0 || !tweet)
             return;
         const first = drawerTargets[0];
@@ -198,6 +203,8 @@ function ParseView() {
             const historyItem = mediaList.find((item) => item && item.id === first.id);
             if (historyItem && historyItem.probe)
                 setDrawerHistoryProbe(historyItem.probe);
+            if (historyItem && typeof historyItem.localPath === 'string' && historyItem.localPath)
+                setDrawerHistoryPath(historyItem.localPath);
         }).catch(() => { });
         return () => { cancelled = true; };
     }, [convertTarget, drawerTargetKey, tweet, results, savedMedia]);
@@ -464,10 +471,10 @@ function ParseView() {
                                                     : '', (() => {
                                                     const kinds = Array.from(new Set(drawerTargets.map((media) => media.kind)));
                                                     return kinds.length === 1 ? ' · 源类型 ' + (0, tweet_1.mediaKindLabel)(kinds[0]) : ' · 源类型 混合';
-                                                })()] }) }), (0, jsx_runtime_1.jsx)(ParamPanel_1.ParamPanel, { variant: "bar", animFormat: animFormat, params: params, presetId: presetId, sourceWidth: sourceWidth, sourceHeight: sourceHeight, sourceSummary: buildParamSourceSummary(drawerTargets, results, savedMedia, drawerProbe ?? drawerHistoryProbe), estimateCalibration: buildParamEstimateCalibration(drawerTargets, results), showSummary: false, renderEncoder: false, gifsicleAvailable: Boolean(info && info.tools && info.tools.gifsicle), fileNamePreview: fileNamePreview, onChange: (next, nextPreset) => {
+                                                })()] }) }), (0, jsx_runtime_1.jsx)(ParamPanel_1.ParamPanel, { variant: "bar", animFormat: animFormat, params: params, presetId: presetId, sourceWidth: sourceWidth, sourceHeight: sourceHeight, sourceSummary: buildParamSourceSummary(drawerTargets, results, savedMedia, drawerProbe ?? drawerHistoryProbe, drawerHistoryPath), estimateCalibration: buildParamEstimateCalibration(drawerTargets, results), showSummary: false, renderEncoder: false, gifsicleAvailable: Boolean(info && info.tools && info.tools.gifsicle), fileNamePreview: fileNamePreview, onChange: (next, nextPreset) => {
                                             setParams(next);
                                             setPresetId(nextPreset);
-                                        } })] }), (0, jsx_runtime_1.jsxs)("div", { className: "convert-drawer-summary", "data-testid": "param-live-summary", children: [(0, jsx_runtime_1.jsx)("span", { className: "convert-drawer-summary-text", children: ParamPanel_1.buildParamLiveSummary(params, sourceWidth, sourceHeight, buildParamSourceSummary(drawerTargets, results, savedMedia, drawerProbe ?? drawerHistoryProbe), buildParamEstimateCalibration(drawerTargets, results)) }), (0, jsx_runtime_1.jsx)(ui_1.Button, { size: "xs", variant: "ghost", icon: "refresh", onClick: resetDrawerParams, "data-testid": "param-reset-button", children: "恢复原参数" })] }), (0, jsx_runtime_1.jsxs)("footer", { className: "convert-drawer-footer", children: [(0, jsx_runtime_1.jsx)("span", { className: "convert-drawer-hint", children: "\u8F6C\u6362\u6700\u591A 2 \u4E2A\u4EFB\u52A1\u5E76\u53D1\u6267\u884C\uFF0C\u5176\u4F59\u81EA\u52A8\u6392\u961F\uFF1B\u672A\u4FDD\u5B58\u7684\u6E90\u5A92\u4F53\u4F1A\u81EA\u52A8\u4FDD\u5B58\u3002X \u4E0A\u7684\u52A8\u56FE\u5B9E\u9645\u662F\u89C6\u9891\u6587\u4EF6\uFF0C\u5EFA\u8BAE\u4F18\u5148\u4FDD\u5B58\u539F\u59CB\u6587\u4EF6\uFF0C\u9700\u8981\u5206\u4EAB\u65F6\u518D\u5BFC\u51FA GIF / WebP \u52A8\u56FE\u3002" }), (0, jsx_runtime_1.jsxs)(ui_1.Button, { size: "sm", variant: "primary", icon: "sparkles", className: "convert-drawer-start", "data-testid": "start-convert-button", onClick: startConvert, disabled: !desktopAvailable, children: ["\u5F00\u59CB\u8F6C\u6362\uFF08", drawerTargets.length, " \u4E2A\uFF09"] }), (0, jsx_runtime_1.jsx)(ui_1.Button, { size: "sm", variant: "ghost", className: "convert-drawer-cancel", onClick: () => setConvertTarget(null), children: "\u53D6\u6D88" })] })] }) }), document.body)
+                                        } })] }), (0, jsx_runtime_1.jsxs)("div", { className: "convert-drawer-summary", "data-testid": "param-live-summary", children: [(0, jsx_runtime_1.jsx)(ParamPanel_1.ParamLiveSummary, { params: params, sourceWidth: sourceWidth, sourceHeight: sourceHeight, animFormat: animFormat, estimateMode: settings.estimateMode, sourceSummary: buildParamSourceSummary(drawerTargets, results, savedMedia, drawerProbe ?? drawerHistoryProbe, drawerHistoryPath), estimateCalibration: buildParamEstimateCalibration(drawerTargets, results) }), (0, jsx_runtime_1.jsx)(ui_1.Button, { size: "xs", variant: "ghost", icon: "refresh", onClick: resetDrawerParams, "data-testid": "param-reset-button", children: "恢复原参数" })] }), (0, jsx_runtime_1.jsxs)("footer", { className: "convert-drawer-footer", children: [(0, jsx_runtime_1.jsx)("span", { className: "convert-drawer-hint", children: "\u8F6C\u6362\u6700\u591A 2 \u4E2A\u4EFB\u52A1\u5E76\u53D1\u6267\u884C\uFF0C\u5176\u4F59\u81EA\u52A8\u6392\u961F\uFF1B\u672A\u4FDD\u5B58\u7684\u6E90\u5A92\u4F53\u4F1A\u81EA\u52A8\u4FDD\u5B58\u3002X \u4E0A\u7684\u52A8\u56FE\u5B9E\u9645\u662F\u89C6\u9891\u6587\u4EF6\uFF0C\u5EFA\u8BAE\u4F18\u5148\u4FDD\u5B58\u539F\u59CB\u6587\u4EF6\uFF0C\u9700\u8981\u5206\u4EAB\u65F6\u518D\u5BFC\u51FA GIF / WebP \u52A8\u56FE\u3002" }), (0, jsx_runtime_1.jsxs)(ui_1.Button, { size: "sm", variant: "primary", icon: "sparkles", className: "convert-drawer-start", "data-testid": "start-convert-button", onClick: startConvert, disabled: !desktopAvailable, children: ["\u5F00\u59CB\u8F6C\u6362\uFF08", drawerTargets.length, " \u4E2A\uFF09"] }), (0, jsx_runtime_1.jsx)(ui_1.Button, { size: "sm", variant: "ghost", className: "convert-drawer-cancel", onClick: () => setConvertTarget(null), children: "\u53D6\u6D88" })] })] }) }), document.body)
                 : null] }));
 }
 

@@ -366,3 +366,57 @@ pub fn patch_delays(
     }
     Ok(output)
 }
+
+
+/// 读取 GIF 每帧图像数据的压缩字节数（不含帧头/调色板），用于体积预估中
+/// 区分「首帧 / 连续段边界帧 / 稳态帧」。解析失败时返回明确错误。
+pub fn frame_data_sizes(path: &str) -> Result<Vec<u32>, String> {
+    let buffer = std::fs::read(path).map_err(|_| format!("GIF 文件不存在或无法读取：{path}"))?;
+    if buffer.len() < 13 {
+        return Err("不是有效的 GIF 文件（文件过短）".into());
+    }
+    if &buffer[0..6] != b"GIF87a" && &buffer[0..6] != b"GIF89a" {
+        return Err("不是有效的 GIF 文件（文件头不是 GIF87a/GIF89a）".into());
+    }
+    let packed = buffer[10];
+    let mut offset = 13usize;
+    if packed & 0x80 != 0 {
+        offset += 3 * (1usize << ((packed & 0x07) + 1));
+    }
+    if offset > buffer.len() {
+        return Err("GIF 全局调色板不完整".into());
+    }
+    let mut sizes: Vec<u32> = Vec::new();
+    while offset < buffer.len() {
+        match buffer[offset] {
+            EXTENSION => {
+                let (end, _, _) = read_extension(&buffer, offset)?;
+                offset = end;
+            }
+            IMAGE => {
+                if offset + 10 > buffer.len() {
+                    return Err("GIF 图像块不完整".into());
+                }
+                let image_packed = buffer[offset + 9];
+                let mut cursor = offset + 10;
+                if image_packed & 0x80 != 0 {
+                    cursor += 3 * (1usize << ((image_packed & 0x07) + 1));
+                }
+                if cursor >= buffer.len() {
+                    return Err("GIF 图像数据缺失".into());
+                }
+                cursor += 1; // LZW 最小码长
+                let (blocks, end) = read_sub_blocks(&buffer, cursor)?;
+                let total: u32 = blocks.iter().map(|(_, len)| *len as u32).sum();
+                sizes.push(total);
+                offset = end;
+            }
+            TRAILER => break,
+            _ => offset += 1,
+        }
+    }
+    if sizes.is_empty() {
+        return Err("GIF 文件里没有图像帧".into());
+    }
+    Ok(sizes)
+}

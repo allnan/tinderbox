@@ -217,6 +217,9 @@
       convert: function (request) {
         return call('gif_convert', { request: request })
       },
+      estimate: function (request) {
+        return call('gif_estimate', { request: request })
+      },
       info: function (filePath) {
         return call('gif_info', { filePath: filePath })
       },

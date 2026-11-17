@@ -313,8 +313,14 @@ async fn encode_gifski(
         args.push("--width".into());
         args.push(width.to_string());
     }
+    // 用相对文件名传给 gifski（工作目录已设为 frames_dir）。
+    // 长视频帧数多时，绝对路径会把 Windows 命令行撑爆，触发 os error 206。
     for frame in frames {
-        args.push(frame.to_string_lossy().to_string());
+        let name = frame
+            .file_name()
+            .map(|value| value.to_string_lossy().to_string())
+            .unwrap_or_else(|| frame.to_string_lossy().to_string());
+        args.push(name);
     }
     job.progress("encode", 55.0, "正在编码 GIF（gifski）…");
     let result = tools::run_tool(Some(job), "gifski", &args, Some(frames_dir), |line| {

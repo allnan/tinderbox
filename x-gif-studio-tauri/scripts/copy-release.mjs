@@ -16,7 +16,6 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const source = path.join(projectRoot, 'src-tauri', 'target', 'release', 'xmedia-studio-tauri.exe')
 const targetDir = path.join(projectRoot, 'release')
 const target = path.join(targetDir, 'XMediaStudioTauri.exe')
-
 async function main() {
   try {
     await stat(source)
