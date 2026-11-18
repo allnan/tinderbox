@@ -1,0 +1,60 @@
+{
+  "name": "@tinderbox/color-picker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "配色工坊取色器的独立版本：React 取色器组件、OKLCH 全彩取色算法与色彩工具",
+  "license": "UNLICENSED",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core.mjs",
+      "require": "./dist/core.cjs"
+    },
+    "./styles.css": "./dist/color-picker.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "core.js",
+    "core.d.ts",
+    "README.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "scripts": {
+    "typecheck": "node scripts/typecheck.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/test.mjs",
+    "demo": "node scripts/build-demo.mjs",
+    "demo:smoke": "node scripts/demo-smoke.mjs",
+    "serve": "node scripts/serve.mjs",
+    "check": "node scripts/typecheck.mjs && node scripts/build.mjs && node scripts/test.mjs && node scripts/build-demo.mjs && node scripts/demo-smoke.mjs"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.1",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "jsdom": "^26.1.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "rollup": "^4.52.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@tinderbox/color-picker": "file:tinderbox-color-picker-0.1.0.tgz"
+  }
+}

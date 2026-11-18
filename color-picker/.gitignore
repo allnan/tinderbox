@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.build/
+demo/dist/
+.npm-cache/
+.shots/
+.acl-recovery/
+.chrome-profile*/
+.electron-userdata/
+*.log

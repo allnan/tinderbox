@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>取色器 · 设计参考实现</title>
+    <link rel="stylesheet" href="./dist/color-picker.css" />
+    <link rel="stylesheet" href="./dist/demo.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // 为打包后的 CJS 依赖（React）提供最小 process/global 垫片
+      window.process = { env: { NODE_ENV: 'production' } }
+      window.global = window
+    </script>
+    <script src="./dist/demo.js"></script>
+  </body>
+</html>
