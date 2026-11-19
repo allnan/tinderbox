@@ -1,0 +1,41 @@
+[package]
+name = "meme-vault"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+base64 = "0.23.1"
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp"] }
+reqwest = { version = "0.13.5", features = ["json"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+tauri = "2.12.6"
+tauri-plugin-clipboard-manager = "2.5.0"
+tauri-plugin-dialog = "2.8.4"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-opener = "2.7.3"
+uuid = { version = "1.29.3", features = ["v4"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+
+[features]
+# 生产构建必须启用：让 Tauri 从内嵌资源加载前端，而不是连接 devUrl。
+custom-protocol = ["tauri/custom-protocol"]
+
+[build-dependencies]
+tauri-build = "2.7.5"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[target."cfg(windows)".dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_DataExchange", "Win32_System_Memory", "Win32_System_Com", "Win32_UI_WindowsAndMessaging"] }
+[lib]
+name = "meme_vault_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[profile.release]
+opt-level = 2
+lto = false
+codegen-units = 16
+strip = true

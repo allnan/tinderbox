@@ -1,0 +1,43 @@
+{
+  "name": "meme-vault",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "表情包仓库 — Tauri Windows 桌面表情包管理工具：归类、分组、展示、快速复制、备份与可撤回的 AI 整理",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "node scripts/dev-server.mjs",
+    "build:web": "node scripts/build-web.mjs",
+    "build": "node scripts/build-exe.mjs",
+    "start": "node scripts/start.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/test-rust.mjs",
+    "deploy": "node scripts/deploy.mjs",
+    "selftest": "node scripts/selftest.mjs",
+    "ui-smoke": "node scripts/ui-smoke.mjs",
+    "quick-smoke": "node scripts/quick-smoke.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "check": "npm run typecheck && npm run build:web && npm run ui-smoke && npm run quick-smoke && npm run test",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/plugin-clipboard-manager": "^2.3.1",
+    "@tauri-apps/plugin-dialog": "^2.4.0",
+    "@tauri-apps/plugin-opener": "^2.5.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.1",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-replace": "^6.0.2",
+    "@tauri-apps/cli": "^2.9.4",
+    "@types/node": "^22.19.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "jsdom": "^29.1.1",
+    "rollup": "^4.52.0",
+    "typescript": "^5.9.3"
+  }
+}
