@@ -11,7 +11,7 @@
 | 项目 | 简介 | 开发状态 | 目录 |
 | --- | --- | --- | --- |
 | ADB 无线调试 | Windows 桌面工具，提供 Android 无线调试的二维码与配对码配对、设备发现、连接及历史配对管理。 | v1.3.7.0；mDNS 发现异常待复现。 | [ADB-connect-tool](./ADB-connect-tool/) |
-| Clash 订阅与流量管理 | Tauri Windows 便携桌面工具，合并原始订阅、按服务商标记节点、编辑策略组并查看 Mihomo 流量历史。 | 主要功能已实现；模板导入限于已支持的常见格式。 | [clash-flow-manager](./clash-flow-manager/) |
+| Clash 订阅与流量管理 | Tauri Windows 便携桌面工具，合并订阅、管理可视化策略组，可本地推演方案规则或连接 Mihomo 核对实际节点，并查看流量历史。 | 新策略组可视化编辑器已实现；模板导入限于已支持的常见格式。 | [clash-flow-manager](./clash-flow-manager/) |
 | Codex 用量预测 | Codex 桌面侧边栏插件，显示 5 小时与周额度、重置时间、历史用量曲线和用量预测。 | v0.1.30；真实使用窗口的预测校准待评估。 | [codex-usage-panel](./codex-usage-panel/) |
 | 配色工坊 | Windows 桌面工具，为前端项目生成、管理、检查并导出配色方案。 | 功能已实现；验收基线通过。 | [palette-studio](./palette-studio/) |
 | 表情包仓库 | Windows 相册式表情包工具：全局热键快速呼出、点一下即复制，主界面按相册拖动整理，并提供可撤回的规则与 AI 整理。 | **已暂停（2026-11-19）**；v0.1.0；单文件便携版，构建、18 项单测、26 项 UI 运行时冒烟（主界面 + 快捷窗口）、release 无窗口自检与 12/12 端到端冒烟通过；AI 真实服务与第三方应用粘贴场景待验证。 | [meme-vault](./meme-vault/) |

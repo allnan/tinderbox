@@ -1,0 +1,9 @@
+node_modules/
+.npm-cache/
+.build/
+dist/
+release/
+src-tauri/target/
+src-tauri/gen/
+userdata/
+*.log

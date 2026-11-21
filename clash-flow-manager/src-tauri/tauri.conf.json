@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Clash Flow Manager",
+  "version": "0.1.0",
+  "identifier": "com.tinderbox.clashflowmanager",
+  "build": {
+    "beforeDevCommand": "node scripts/prepare-dist.mjs",
+    "beforeBuildCommand": "node scripts/prepare-dist.mjs",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Clash 订阅与流量管理",
+        "width": 1440,
+        "height": 920,
+        "minWidth": 1000,
+        "minHeight": 680,
+        "resizable": true,
+        "decorations": false,
+        "shadow": true,
+        "center": true,
+        "backgroundColor": "#f4f6fa",
+        "visible": true,
+        "focus": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' https: http://ipc.localhost; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    },
+    "withGlobalTauri": false,
+    "appDirectoriesOverride": "./userdata"
+  },
+  "bundle": {
+    "active": false,
+    "icon": [
+      "icons/icon.ico"
+    ]
+  }
+}

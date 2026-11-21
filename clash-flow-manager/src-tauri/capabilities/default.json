@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Clash Flow Manager desktop window permissions",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

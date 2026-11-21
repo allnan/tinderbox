@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="tile" x1="6" y1="4" x2="58" y2="61" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2676E8" />
+      <stop offset="1" stop-color="#12499E" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#tile)" />
+
+  <!-- Strategy selector: one chosen routing mode feeds three proxy groups. -->
+  <g transform="translate(8 8) scale(.75)">
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M24 5.5 22 3.5M32 5V2.5M40 5.5l2-2" stroke="#F5F9FF" stroke-width="2.3" />
+    <circle cx="32" cy="15" r="6.3" stroke="#F5F9FF" stroke-width="2.7" />
+    <path d="m32 15 5.1-5.2" stroke="#75F29B" stroke-width="3.1" />
+    <circle cx="32" cy="15" r="1.3" fill="#F5F9FF" />
+
+    <path d="M32 21.8V30.5M12 36h40M12 36v5.2M52 36v5.2" stroke="#D8E9FF" stroke-width="2.3" />
+    <path d="M32 30.5V41.2" stroke="#75F29B" stroke-width="2.7" />
+
+    <rect x="4.5" y="41" width="15.5" height="16" rx="4.5" fill="#2E79DE" stroke="#D8E9FF" stroke-width="1.8" />
+    <rect x="24.25" y="41" width="15.5" height="16" rx="4.5" fill="#75E994" stroke="#B8FFD0" stroke-width="1.8" />
+    <rect x="44" y="41" width="15.5" height="16" rx="4.5" fill="#2E79DE" stroke="#D8E9FF" stroke-width="1.8" />
+  </g>
+
+  <g fill="#F5F9FF">
+    <circle cx="8.7" cy="49" r="1.25" /><circle cx="12.25" cy="49" r="1.25" /><circle cx="15.8" cy="49" r="1.25" />
+    <circle cx="48.2" cy="49" r="1.25" /><circle cx="51.75" cy="49" r="1.25" /><circle cx="55.3" cy="49" r="1.25" />
+  </g>
+  <g fill="#145A36">
+    <circle cx="28" cy="49" r="1.25" /><circle cx="32" cy="49" r="1.25" /><circle cx="36" cy="49" r="1.25" />
+  </g>
+  </g>
+</svg>

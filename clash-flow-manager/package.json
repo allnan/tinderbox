@@ -1,0 +1,28 @@
+{
+  "name": "clash-flow-manager",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Clash subscription, policy and traffic manager",
+  "type": "module",
+  "scripts": {
+    "prepare:dist": "node scripts/prepare-dist.mjs",
+    "dev": "npm run prepare:dist && tauri dev",
+    "build": "npm run prepare:dist && tauri build --no-bundle && node scripts/copy-release.mjs",
+    "typecheck": "node scripts/typecheck.mjs",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "28.0.1",
+    "@tauri-apps/cli": "2.12.4",
+    "@types/node": "22.19.0",
+    "@types/react": "19.2.0",
+    "@types/react-dom": "19.2.0",
+    "rollup": "4.68.3",
+    "terser": "5.51.2",
+    "typescript": "5.9.3"
+  }
+}
