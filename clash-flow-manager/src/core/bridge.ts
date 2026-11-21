@@ -137,19 +137,6 @@ export type AppSettings = {
   autoGroupNameParts: string[]
 }
 
-export type BackupBundle = {
-  format: string
-  version: number
-  exportedAt: string
-  settings: AppSettings
-  sources: Source[]
-  nodes: ProxyNode[]
-  policy: PolicyConfig
-  policyLibrary: PolicyLibrary
-  ruleSetLibrary: RuleSetLibrary
-  trafficFiles: { name: string; content: string }[]
-}
-
 export type UsageRow = {
   key: string
   provider: string
@@ -275,7 +262,7 @@ export const api = {
   summary: (from: string, to: string) => invoke<UsageSummary>('usage_summary', { from, to }),
   unmatchedConnections: (from: string, to: string) => invoke<UnmatchedConnection[]>('usage_unmatched_connections', { from, to }),
   clearTrafficHistory: () => invoke<number>('usage_clear_history'),
-  exportBackup: () => invoke<BackupBundle>('backup_export'),
+  exportBackupTo: (path: string) => invoke<void>('backup_export_to', { path }),
   restoreBackup: (backup: unknown) => invoke<void>('backup_restore', { backup }),
   controllerCheck: (url: string, secret: string) => invoke<string>('controller_check', { url, secret }),
   routeCheck: (url: string) => invoke<RouteCheckResult>('route_check', { url }),

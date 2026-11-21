@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { save as saveFileDialog } from '@tauri-apps/plugin-dialog'
 import { api, type AppSettings, type AppSnapshot, type PolicyConfig, type ProxyNode, type RuleSetItem, type RuleSetPreview, type SavedPolicy, type Source, type SourceSyncResult, type SubscriptionInfo, type UnmatchedConnection, type UsageRow, type UsageSummary } from './core/bridge'
 import { defaultPolicyPresetId, findPolicyPreset, findPolicyPresetGroup, policyPresetCount, policyPresetGroups } from './core/presetCatalog'
 import { resolveRuleSetPurpose, ruleSetPurposeCategories } from './core/ruleSetPurposes'
@@ -114,6 +115,13 @@ function localDateInput(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function backupFileName(date: Date): string {
+  const time = [date.getHours(), date.getMinutes(), date.getSeconds()]
+    .map((part) => String(part).padStart(2, '0'))
+    .join('')
+  return `ClashFlowManager-完整备份-${localDateInput(date)}-${time}.json`
 }
 
 function freshSource(): Source {
@@ -731,17 +739,16 @@ export function App() {
   async function exportBackup() {
     setBusy(true)
     try {
-      const backup = await api.exportBackup()
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `clash-flow-manager-backup-${localDateInput(new Date())}.json`
-      document.body.append(link)
-      link.click()
-      link.remove()
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-      setToast({ type: 'success', text: '完整备份已导出' })
+      const fileName = backupFileName(new Date())
+      const filePath = await saveFileDialog({
+        title: '保存 ClashFlowManager 完整备份',
+        defaultPath: fileName,
+        filters: [{ name: 'ClashFlowManager 完整备份', extensions: ['json'] }],
+      })
+      if (!filePath) return
+      await api.exportBackupTo(filePath)
+      const savedName = filePath.split(/[\\/]/).pop() || fileName
+      setToast({ type: 'success', text: `完整备份已保存：${savedName}` })
     } catch (error) {
       setToast({ type: 'error', text: String(error) })
     } finally {

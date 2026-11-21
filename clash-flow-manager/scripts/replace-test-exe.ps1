@@ -157,7 +157,18 @@ function Stop-TargetExecutableIfRunning {
   }
 
   $remainingOwners = @()
-  foreach ($owner in @(Get-LockingProcess -Path $Path)) {
+  try {
+    $lockingOwners = @(Get-LockingProcess -Path $Path)
+  }
+  catch {
+    if ($_.Exception.Message -match 'Windows 占用查询启动失败，错误码：29') {
+      Write-Warning 'Windows Restart Manager 未能启动；继续有限次覆盖尝试，不结束其他进程。'
+      return @()
+    }
+    throw
+  }
+
+  foreach ($owner in $lockingOwners) {
     $sameExecutable = $false
     if (-not [string]::IsNullOrWhiteSpace($owner.ExecutablePath)) {
       $ownerPath = [IO.Path]::GetFullPath($owner.ExecutablePath)

@@ -232,8 +232,8 @@ pub fn usage_clear_history(state: State<'_, SharedState>) -> Result<usize, Strin
 }
 
 #[tauri::command]
-pub fn backup_export(state: State<'_, SharedState>) -> Result<crate::backup::BackupBundle, String> {
-    crate::backup::export(&state)
+pub fn backup_export_to(state: State<'_, SharedState>, path: String) -> Result<(), String> {
+    crate::backup::export_to(&state, &path)
 }
 
 #[tauri::command]

@@ -1,6 +1,7 @@
 use std::{
     collections::{BTreeMap, HashSet},
     fs,
+    path::Path,
 };
 
 use chrono::NaiveDate;
@@ -103,6 +104,21 @@ pub fn export(state: &AppState) -> Result<BackupBundle, String> {
 
 fn json_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>, String> {
     serde_json::to_vec_pretty(value).map_err(|error| format!("生成备份数据失败：{error}"))
+}
+
+pub fn export_to(state: &AppState, destination: &str) -> Result<(), String> {
+    let path = Path::new(destination);
+    let is_json = path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("json"));
+    if !is_json {
+        return Err("备份文件必须使用 .json 扩展名".into());
+    }
+
+    let bundle = export(state)?;
+    let bytes = json_bytes(&bundle)?;
+    fs::write(path, bytes).map_err(|error| format!("写入备份文件失败：{error}"))
 }
 
 fn rollback(originals: &BTreeMap<String, Option<Vec<u8>>>) {

@@ -27,6 +27,7 @@ fn tray_image() -> tauri::image::Image<'static> {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let state = state::AppState::new().map_err(std::io::Error::other)?;
             app.manage(state.clone());
@@ -86,7 +87,7 @@ fn main() {
             commands::usage_summary,
             commands::usage_unmatched_connections,
             commands::usage_clear_history,
-            commands::backup_export,
+            commands::backup_export_to,
             commands::backup_restore,
             commands::controller_check,
             commands::route_check,
