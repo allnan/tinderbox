@@ -1,0 +1,159 @@
+{
+  "name": "adb-wifi-connect",
+  "displayName": "ADB WIFI 无线调试",
+  "description": "在 VS Code 中管理 Android 无线调试：二维码/配对码配对、设备发现、无线连接、历史配对与 ADB 诊断。",
+  "version": "0.1.0",
+  "publisher": "tinderbox",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/allnan/tinderbox.git",
+    "directory": "ADB-WIFI-VSCode-Extension"
+  },
+  "homepage": "https://github.com/allnan/tinderbox/tree/main/ADB-WIFI-VSCode-Extension",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "adb",
+    "android",
+    "wifi",
+    "wireless",
+    "debug",
+    "无线调试",
+    "安卓",
+    "vscode-extension"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "adbWifi.openSidebar",
+        "title": "%command.show%",
+        "category": "%category%"
+      },
+      {
+        "command": "adbWifi.pairQr",
+        "title": "%command.pair%",
+        "category": "%category%"
+      },
+      {
+        "command": "adbWifi.connectPage",
+        "title": "%command.connect%",
+        "category": "%category%"
+      },
+      {
+        "command": "adbWifi.reconnect",
+        "title": "%command.reconnect%",
+        "category": "%category%"
+      },
+      {
+        "command": "adbWifi.openPanel",
+        "title": "%command.openPanel%",
+        "category": "%category%",
+        "icon": "$(layout)"
+      },
+      {
+        "command": "adbWifi.openSettings",
+        "title": "%command.openSettings%",
+        "category": "%category%",
+        "icon": "$(gear)"
+      }
+    ],
+    "configuration": {
+      "title": "ADB WIFI",
+      "properties": {
+        "adbWifi.adbPath": {
+          "type": "string",
+          "default": "",
+          "description": "%config.adbPath.description%",
+          "markdownDescription": "%config.adbPath.markdownDescription%"
+        },
+        "adbWifi.serverPort": {
+          "type": "number",
+          "default": 5038,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "%config.serverPort.description%"
+        },
+        "adbWifi.refreshInterval": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 1000,
+          "maximum": 60000,
+          "description": "%config.refreshInterval.description%"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "adbWifi",
+          "title": "ADB WIFI",
+          "icon": "media/activitybar.svg"
+        }
+      ]
+    },
+    "views": {
+      "adbWifi": [
+        {
+          "id": "adbWifi.sidebar",
+          "name": "%view.console%",
+          "type": "webview"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "adbWifi.openPanel",
+          "when": "view == adbWifi.sidebar",
+          "group": "navigation@1"
+        },
+        {
+          "command": "adbWifi.openSettings",
+          "when": "view == adbWifi.sidebar",
+          "group": "navigation@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "adbWifi.openPanel",
+          "when": "false"
+        },
+        {
+          "command": "adbWifi.openSettings",
+          "when": "false"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "node --test out/test/parse.test.js",
+    "package": "node -e \"require('node:fs').mkdirSync('dist',{recursive:true})\" && vsce package --no-dependencies --baseContentUrl https://github.com/allnan/tinderbox/blob/HEAD/ADB-WIFI-VSCode-Extension/ --baseImagesUrl https://github.com/allnan/tinderbox/raw/HEAD/ADB-WIFI-VSCode-Extension/ --out dist/",
+    "install:vsix": "code --install-extension dist/adb-wifi-connect-0.1.0.vsix --force"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.100.0",
+    "@vscode/vsce": "^3.2.1",
+    "typescript": "^5.7.2"
+  },
+  "icon": "icon.png",
+  "bugs": {
+    "url": "https://github.com/allnan/tinderbox/issues"
+  },
+  "galleryBanner": {
+    "color": "#0b6bcb",
+    "theme": "dark"
+  }
+}

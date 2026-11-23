@@ -1,0 +1,14 @@
+{
+  "category": "ADB-WIFI",
+  "command.show": "1. show",
+  "command.pair": "2. pair",
+  "command.connect": "3. connect",
+  "command.reconnect": "4. reconnect",
+  "view.console": "Console",
+  "config.adbPath.description": "Path to the adb executable or its directory. Leave empty to use the ADB environment variable, then platform-tools under ANDROID_HOME / ANDROID_SDK_ROOT, then PATH.",
+  "config.adbPath.markdownDescription": "Path to the adb executable or its directory. Leave empty to use the `ADB` environment variable, then `platform-tools` under `ANDROID_HOME` / `ANDROID_SDK_ROOT`, then `PATH`. You can also [choose the adb file](command:adbWifi.selectAdbPath).",
+  "config.serverPort.description": "ADB server port. Default 5038 avoids conflicts with other tools using 5037.",
+  "config.refreshInterval.description": "Interval (ms) for refreshing devices and mDNS state while idle. QR pairing and failures adjust it automatically.",
+  "command.openPanel": "Open Panel",
+  "command.openSettings": "Open Settings"
+}

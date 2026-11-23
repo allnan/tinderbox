@@ -1,0 +1,14 @@
+.npm-cache/**
+node_modules/**
+.vscode/**
+.vscode-test/**
+dist/**
+src/**
+out/test/**
+docs/**
+tsconfig.json
+.gitignore
+**/*.map
+**/*.ts
+package-lock.json
+.ui-preview/**

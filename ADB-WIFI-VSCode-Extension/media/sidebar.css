@@ -1,0 +1,2256 @@
+:root {
+  --side-border: color-mix(in srgb, var(--vscode-foreground) 30%, transparent);
+  --side-muted: color-mix(in srgb, var(--vscode-foreground) 78%, transparent);
+  --side-surface: var(--vscode-editor-background, #ffffff);
+  --side-tint: color-mix(in srgb, var(--vscode-foreground) 5%, transparent);
+  --side-accent: var(--vscode-focusBorder, #0078d4);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--vscode-editor-background, #ffffff);
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family, "Segoe UI", sans-serif);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.view {
+  background: var(--vscode-editor-background, #ffffff);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 11px 16px;
+  min-height: 100vh;
+}
+
+.loading {
+  padding: 8px 2px;
+  color: var(--side-muted);
+}
+
+/* ---------------- 三个栏目 ---------------- */
+.section {
+  border: 1px solid var(--side-border);
+  border-radius: 8px;
+  background: var(--side-surface);
+  overflow: hidden;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.section-head:hover {
+  background: var(--side-tint);
+}
+
+.section.open > .section-head {
+  background: color-mix(in srgb, var(--side-accent) 8%, transparent);
+  border-bottom: 1px solid var(--side-border);
+}
+
+.section-icon,
+.module-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vscode-foreground) 9%, transparent);
+  color: var(--side-muted);
+}
+
+.section.open .section-icon,
+.pair-module.open .module-icon {
+  color: var(--side-accent);
+  background: color-mix(in srgb, var(--side-accent) 14%, transparent);
+}
+
+.section-icon svg,
+.module-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.section-title {
+  flex: 1 1 auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  text-align: left;
+}
+
+.section-chevron,
+.pair-chevron,
+.device-chevron {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  opacity: 0.7;
+  transform: rotate(-45deg);
+  transition: transform 0.18s ease;
+}
+
+.section.open > .section-head .section-chevron,
+.pair-module.open .pair-chevron,
+.device-card.open .device-chevron {
+  transform: rotate(45deg);
+}
+
+.section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 10px;
+}
+
+.section-summary {
+  font-size: 11px;
+  color: var(--side-muted);
+}
+
+.section-intro {
+  margin: 0;
+  font-size: 11px;
+  color: var(--side-muted);
+}
+
+.section-note {
+  font-size: 11px;
+  color: var(--side-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ---------------- ADB 栏目 ---------------- */
+.adb-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.adb-status .status-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--vscode-charts-green, #3fb950);
+}
+
+.adb-status.error .status-dot {
+  background: var(--vscode-errorForeground, #f85149);
+}
+
+.adb-status.error {
+  color: var(--vscode-errorForeground, #f85149);
+}
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fact {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.fact-label {
+  flex: 0 0 64px;
+  color: var(--side-muted);
+}
+
+.fact-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mono {
+  font-family: var(--vscode-editor-font-family, Consolas, monospace);
+  font-size: 11px;
+}
+
+/* ---------------- 按钮 ---------------- */
+.btn {
+  min-height: 26px;
+  padding: 3px 10px;
+  border: 1px solid var(--side-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.14));
+}
+
+.btn.primary {
+  border-color: var(--vscode-button-background, var(--side-accent));
+  background: var(--vscode-button-background, var(--side-accent));
+  color: var(--vscode-button-foreground, #ffffff);
+  font-weight: 500;
+}
+
+.btn.primary:hover {
+  background: var(--vscode-button-hoverBackground, var(--side-accent));
+}
+
+.btn.danger {
+  color: var(--vscode-errorForeground, #f85149);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* ---------------- 设备 ---------------- */
+.device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.device-card {
+  border: 1px solid var(--side-border);
+  border-left-width: 3px;
+  border-radius: 7px;
+  background: var(--side-surface);
+  overflow: hidden;
+}
+
+.device-card.connected {
+  border-left-color: var(--vscode-charts-green, #3fb950);
+}
+
+.device-card.paired {
+  border-left-color: var(--vscode-charts-blue, #4daafc);
+}
+
+.device-card.open {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.device-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 8px 10px 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.device-head:hover {
+  background: var(--side-tint);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--side-muted);
+}
+
+.device-card.connected .status-dot {
+  background: var(--vscode-charts-green, #3fb950);
+}
+
+.device-card.paired .status-dot {
+  background: var(--vscode-charts-blue, #4daafc);
+}
+
+.device-name {
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  padding: 0 6px;
+  border: 1px solid var(--side-border);
+  border-radius: 999px;
+  font-size: 10px;
+  color: var(--side-muted);
+  white-space: nowrap;
+}
+
+.device-card.connected .badge {
+  color: var(--vscode-charts-green, #3fb950);
+  border-color: color-mix(in srgb, var(--vscode-charts-green, #3fb950) 45%, transparent);
+}
+
+.device-card.paired .badge {
+  color: var(--vscode-charts-blue, #4daafc);
+  border-color: color-mix(in srgb, var(--vscode-charts-blue, #4daafc) 45%, transparent);
+}
+
+.device-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 10px 8px;
+}
+
+.device-ip {
+  font-size: 11px;
+  color: var(--side-muted);
+  overflow-wrap: anywhere;
+}
+
+.device-ip.missing {
+  font-style: italic;
+}
+
+.device-actions .btn {
+  min-height: 24px;
+  padding: 2px 9px;
+  font-size: 11px;
+}
+
+.device-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--side-border);
+  background: var(--side-tint);
+}
+
+.device-extra .fact-label {
+  flex-basis: 72px;
+}
+
+.empty {
+  padding: 6px 0;
+  color: var(--side-muted);
+}
+
+/* ---------------- 配对与 IP 连接 ---------------- */
+.pair-modules {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.pair-module {
+  border: 1px solid var(--side-border);
+  border-radius: 7px;
+  background: var(--side-surface);
+  overflow: hidden;
+}
+
+.pair-module.open {
+  border-color: color-mix(in srgb, var(--side-accent) 55%, var(--side-border));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+}
+
+.pair-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.pair-head:hover {
+  background: var(--side-tint);
+}
+
+.pair-module.open > .pair-head {
+  background: color-mix(in srgb, var(--side-accent) 8%, transparent);
+  border-bottom: 1px solid var(--side-border);
+}
+
+.pair-head-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: left;
+}
+
+.pair-title {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.pair-desc {
+  font-size: 11px;
+  color: var(--side-muted);
+}
+
+.pair-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px;
+}
+
+.module-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--side-muted);
+}
+
+.field-label {
+  margin-bottom: -3px;
+  font-size: 11px;
+  color: var(--side-muted);
+}
+
+.module-status {
+  font-size: 11px;
+  color: var(--side-muted);
+  overflow-wrap: anywhere;
+}
+
+.module-status.error {
+  color: var(--vscode-errorForeground, #f85149);
+}
+
+.module-status.ok {
+  color: var(--vscode-charts-green, #3fb950);
+}
+
+.module-status:empty,
+.module-error:empty {
+  display: none;
+}
+
+.module-error {
+  font-size: 11px;
+  color: var(--vscode-errorForeground, #f85149);
+}
+
+/* 二维码 */
+.qr-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  min-width: 180px;
+  min-height: 180px;
+  padding: 8px;
+  border: 1px solid var(--side-border);
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.qr-box svg {
+  display: block;
+  width: 170px;
+  height: 170px;
+}
+
+.qr-empty {
+  color: #666666;
+  font-size: 11px;
+  text-align: center;
+}
+
+.expiry {
+  align-self: center;
+  padding: 1px 8px;
+  border: 1px solid var(--side-border);
+  border-radius: 999px;
+  font-size: 10.5px;
+  color: var(--side-muted);
+}
+
+.expiry:empty {
+  display: none;
+}
+
+/* 分段 IP */
+.endpoint {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.endpoint .ipv4 {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.endpoint input {
+  min-width: 0;
+  padding: 3px 2px;
+  border: 1px solid var(--vscode-input-border, var(--side-border));
+  border-radius: 3px;
+  background: var(--vscode-input-background, transparent);
+  color: var(--vscode-input-foreground, var(--vscode-foreground));
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+}
+
+.endpoint .ipv4 input {
+  width: 34px;
+}
+
+.endpoint .ipv6 input {
+  width: 150px;
+  text-align: left;
+}
+
+.endpoint .port {
+  width: 50px;
+}
+
+.endpoint .dot,
+.endpoint .colon {
+  color: var(--side-muted);
+  font-size: 12px;
+}
+
+.endpoint .endpoint-toggle {
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--vscode-textLink-foreground);
+  font-size: 10px;
+}
+
+.endpoint input:focus {
+  outline: 1px solid var(--side-accent);
+  outline-offset: -1px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  padding: 2px 8px;
+  border: 1px solid var(--side-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--vscode-textLink-foreground);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.chip:hover {
+  background: var(--side-tint);
+}
+
+/* 配对码输入 */
+.code-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.code-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-input-border, var(--side-border));
+  border-radius: 4px;
+  background: var(--vscode-input-background, transparent);
+  color: var(--vscode-input-foreground, var(--vscode-foreground));
+  font: inherit;
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+.code-input::placeholder {
+  color: var(--vscode-input-placeholderForeground, var(--side-muted));
+  letter-spacing: 0;
+  font-size: 12px;
+}
+
+.code-row .btn {
+  min-height: 32px;
+  padding: 4px 16px;
+}
+
+.toast {
+  position: sticky;
+  bottom: 4px;
+  padding: 6px 9px;
+  border: 1px solid var(--side-border);
+  border-radius: 5px;
+  background: var(--vscode-editorWidget-background, var(--side-surface));
+  color: var(--side-muted);
+  font-size: 11px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.toast.error {
+  color: var(--vscode-errorForeground, #f85149);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.code-row {
+  width: 100%;
+  min-width: 0;
+}
+
+.code-row .btn {
+  flex: 0 0 auto;
+}
+
+/* ===== 三个原生视图的共用内容布局 ===== */
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 11px 16px;
+  box-sizing: border-box;
+}
+
+.actions-wrap {
+  flex-wrap: wrap;
+}
+
+.actions-center {
+  justify-content: center;
+}
+
+.module-status.center {
+  text-align: center;
+}
+
+.module-notice {
+  padding: 5px 8px;
+  border-left: 2px solid var(--vscode-focusBorder, #0078d4);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--vscode-focusBorder, #0078d4) 8%, transparent);
+  color: var(--side-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.device-ip {
+  display: block;
+  padding: 0 10px 8px;
+}
+
+.device-extra .actions {
+  margin-bottom: 6px;
+}
+
+.device-card {
+  border-radius: 7px;
+}
+
+.pair-body .actions {
+  margin-top: 1px;
+}
+
+/* 防止分段输入/配对码行溢出 */
+.view {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.pair-modules,
+.pair-module,
+.pair-body,
+.endpoint,
+.code-row {
+  min-width: 0;
+}
+
+.endpoint {
+  max-width: 100%;
+}
+
+.code-input {
+  flex: 1 1 0;
+  width: 0;
+}
+
+.pair-body .code-row {
+  width: 100%;
+}
+
+/* ===== 设备卡片：折叠显示主操作，展开后操作放最底部 ===== */
+.collapsed-actions {
+  padding: 0 10px 8px;
+}
+
+.expanded-actions {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.device-extra {
+  border-top: 0;
+  background: transparent;
+  padding-top: 2px;
+}
+
+.device-extra .expanded-actions {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+/* ===== 配对界面压缩到一屏 ===== */
+.pair-body {
+  gap: 6px;
+  padding: 8px 9px;
+}
+
+.pair-head {
+  padding: 7px 9px;
+}
+
+.qr-box {
+  min-width: 132px;
+  min-height: 132px;
+  padding: 5px;
+}
+
+.qr-box svg {
+  width: 122px;
+  height: 122px;
+}
+
+.expiry {
+  padding: 0 7px;
+  font-size: 10px;
+}
+
+.module-hint,
+.module-notice,
+.field-label {
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.module-status,
+.module-error {
+  font-size: 10.5px;
+}
+
+.pair-desc {
+  font-size: 10.5px;
+}
+
+.pair-body .actions .btn {
+  min-height: 24px;
+  padding: 2px 9px;
+  font-size: 11px;
+}
+
+.code-input {
+  min-height: 30px;
+}
+
+.code-row .btn {
+  min-height: 30px;
+  padding: 3px 12px;
+}
+
+.endpoint .ipv4 input {
+  width: 32px;
+}
+
+.endpoint .port {
+  width: 47px;
+}
+
+/* ===== ADB 视图 ===== */
+.adb-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--side-border);
+  border-left: 3px solid var(--vscode-charts-green, #3fb950);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-charts-green, #3fb950) 6%, transparent);
+}
+
+.adb-hero.error {
+  border-left-color: var(--vscode-errorForeground, #f85149);
+  background: color-mix(in srgb, var(--vscode-errorForeground, #f85149) 6%, transparent);
+}
+
+.hero-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-charts-green, #3fb950) 16%, transparent);
+  color: var(--vscode-charts-green, #3fb950);
+}
+
+.adb-hero.error .hero-icon {
+  background: color-mix(in srgb, var(--vscode-errorForeground, #f85149) 16%, transparent);
+  color: var(--vscode-errorForeground, #f85149);
+}
+
+.hero-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.hero-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hero-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hero-sub {
+  font-size: 11px;
+  color: var(--side-muted);
+  overflow-wrap: anywhere;
+}
+
+.info-card {
+  border: 1px solid var(--side-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--side-surface);
+}
+
+.info-row {
+  display: flex;
+  gap: 8px;
+  padding: 6px 9px;
+  border-top: 1px solid var(--side-border);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.info-row:first-child {
+  border-top: 0;
+}
+
+.info-label {
+  flex: 0 0 62px;
+  color: var(--side-muted);
+}
+
+.info-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.action-row .btn.primary {
+  flex: 1 1 120px;
+}
+
+.action-row-muted .btn {
+  color: var(--side-muted);
+  background: transparent;
+}
+
+/* ===== 单视图控制台：ADB / 设备 / 配对分栏 ===== */
+.console {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100vh;
+  min-height: 0;
+  padding: 8px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.panel {
+  flex: 0 0 auto;
+  border: 1px solid var(--side-border);
+  border-radius: 8px;
+  background: var(--side-surface);
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.panel-head:hover {
+  background: var(--side-tint);
+}
+
+.panel.open > .panel-head {
+  background: color-mix(in srgb, var(--side-accent) 8%, transparent);
+  border-bottom: 1px solid var(--side-border);
+}
+
+.panel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vscode-foreground) 9%, transparent);
+  color: var(--side-muted);
+}
+
+.panel.open .panel-icon {
+  color: var(--side-accent);
+  background: color-mix(in srgb, var(--side-accent) 14%, transparent);
+}
+
+.panel-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.panel-title {
+  flex: 1 1 auto;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.panel-chevron {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  opacity: 0.7;
+  transform: rotate(-45deg);
+  transition: transform 0.18s ease;
+}
+
+.panel.open .panel-chevron {
+  transform: rotate(45deg);
+}
+
+.panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+.devices-panel {
+  flex: 1 1 auto;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--side-border);
+  border-radius: 8px;
+  background: var(--side-surface);
+  overflow: hidden;
+}
+
+.devices-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--side-border);
+}
+
+.devices-title {
+  flex: 1 1 auto;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.devices-summary {
+  flex: none;
+  font-size: 10.5px;
+  color: var(--side-muted);
+}
+
+.device-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pair-panel-body {
+  gap: 7px;
+}
+
+/* ===== ADB 区压缩 ===== */
+.adb-hero {
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 7px;
+}
+
+.hero-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+}
+
+.hero-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.hero-title {
+  font-size: 12px;
+}
+
+.hero-sub {
+  font-size: 10.5px;
+}
+
+.info-row {
+  padding: 3px 8px;
+  font-size: 10.5px;
+  gap: 6px;
+}
+
+.info-label {
+  flex-basis: 42px;
+}
+
+.info-value {
+  font-family: inherit;
+  font-size: 10.5px;
+}
+
+.info-value.path {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.panel-body {
+  gap: 6px;
+  padding: 8px;
+}
+
+.action-row {
+  gap: 5px;
+}
+
+.action-row .btn {
+  min-height: 24px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.panel-open-row .btn {
+  width: 100%;
+  min-height: 28px;
+}
+
+.panel-head {
+  padding: 7px 9px;
+}
+
+.panel-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.panel-title {
+  font-size: 12px;
+}
+
+/* ===== 提高对比度与可读性 ===== */
+:root {
+  --side-muted: color-mix(in srgb, var(--vscode-foreground) 88%, transparent);
+  --side-border: color-mix(in srgb, var(--vscode-foreground) 36%, transparent);
+}
+
+.panel,
+.devices-panel,
+.device-card,
+.pair-module,
+.info-card {
+  border-color: var(--side-border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.pair-desc,
+.module-hint,
+.module-notice,
+.field-label,
+.module-status,
+.info-label,
+.hero-sub,
+.devices-summary,
+.device-ip,
+.fact-label,
+.section-summary {
+  color: var(--side-muted);
+}
+
+.module-hint,
+.field-label,
+.module-notice,
+.pair-desc {
+  font-size: 11.5px;
+}
+
+.info-row {
+  font-size: 11px;
+  padding: 4px 9px;
+}
+
+.info-value,
+.info-value.path {
+  font-size: 11px;
+  color: var(--vscode-foreground);
+}
+
+.endpoint input {
+  min-height: 27px;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 42%, transparent);
+  background: var(--vscode-input-background, #ffffff);
+  color: var(--vscode-input-foreground, var(--vscode-foreground));
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.endpoint .ipv4 input {
+  width: 37px;
+}
+
+.endpoint .port {
+  width: 54px;
+}
+
+.endpoint .dot,
+.endpoint .colon {
+  color: var(--vscode-foreground);
+  font-size: 12px;
+}
+
+.endpoint .endpoint-toggle {
+  color: var(--vscode-textLink-foreground);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+.code-input {
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 42%, transparent);
+  background: var(--vscode-input-background, #ffffff);
+  color: var(--vscode-input-foreground, var(--vscode-foreground));
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.code-input::placeholder {
+  color: color-mix(in srgb, var(--vscode-foreground) 55%, transparent);
+}
+
+.chip {
+  border-color: color-mix(in srgb, var(--vscode-foreground) 32%, transparent);
+  background: color-mix(in srgb, var(--vscode-focusBorder, #0078d4) 5%, transparent);
+  color: var(--vscode-textLink-foreground);
+  font-weight: 500;
+}
+
+.btn {
+  border-color: color-mix(in srgb, var(--vscode-foreground) 36%, transparent);
+  background: var(--vscode-button-secondaryBackground, transparent);
+  font-weight: 500;
+}
+
+.btn.primary {
+  border-color: var(--vscode-button-background, var(--side-accent));
+  background: var(--vscode-button-background, var(--side-accent));
+  color: var(--vscode-button-foreground, #ffffff);
+  font-weight: 600;
+}
+
+.pair-module.open > .pair-head {
+  background: color-mix(in srgb, var(--vscode-focusBorder, #0078d4) 11%, transparent);
+}
+
+.module-notice {
+  border-left-width: 3px;
+  color: var(--vscode-foreground);
+}
+
+.pair-body > .actions .btn.primary {
+  flex: 1 1 auto;
+}
+
+.pair-module[data-pair="qr"] .actions .btn {
+  flex: 0 0 auto;
+}
+
+.device-ip {
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.device-name {
+  font-size: 13px;
+}
+
+.badge {
+  color: var(--vscode-foreground);
+  font-weight: 500;
+}
+
+/* 折叠设备：IP 与主操作同一行，按钮右对齐 */
+.device-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 8px;
+}
+
+.device-line .device-ip {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.device-line .collapsed-actions {
+  flex: none;
+  padding: 0;
+  margin-left: auto;
+  gap: 4px;
+}
+
+.device-line .device-actions .btn {
+  min-height: 22px;
+  padding: 1px 8px;
+  font-size: 10.5px;
+}
+
+/* ===== 配色收敛：蓝色只留给主操作 ===== */
+.panel.open > .panel-head,
+.pair-module.open > .pair-head {
+  background: color-mix(in srgb, var(--vscode-foreground) 5%, transparent);
+}
+
+.panel.open .panel-icon,
+.pair-module.open .module-icon {
+  color: var(--vscode-foreground);
+  background: color-mix(in srgb, var(--vscode-foreground) 9%, transparent);
+}
+
+.panel-icon,
+.module-icon {
+  color: var(--side-muted);
+}
+
+.pair-module.open {
+  border-color: color-mix(in srgb, var(--vscode-foreground) 42%, transparent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.chip {
+  border-color: color-mix(in srgb, var(--vscode-foreground) 30%, transparent);
+  background: transparent;
+  color: var(--vscode-foreground);
+  font-weight: 400;
+}
+
+.module-notice {
+  border-left-color: color-mix(in srgb, var(--vscode-foreground) 35%, transparent);
+  background: color-mix(in srgb, var(--vscode-foreground) 5%, transparent);
+  color: var(--vscode-foreground);
+}
+
+.device-card.paired {
+  border-left-color: color-mix(in srgb, var(--vscode-foreground) 32%, transparent);
+}
+
+.device-card.paired .status-dot {
+  background: color-mix(in srgb, var(--vscode-foreground) 45%, transparent);
+}
+
+.device-card.paired .badge {
+  color: var(--vscode-foreground);
+  border-color: color-mix(in srgb, var(--vscode-foreground) 28%, transparent);
+}
+
+.adb-hero {
+  background: transparent;
+}
+
+.hero-icon {
+  background: color-mix(in srgb, var(--vscode-charts-green, #3fb950) 12%, transparent);
+}
+
+.action-row-muted .btn,
+.device-actions .btn,
+.pair-body .actions .btn.secondary {
+  background: var(--vscode-button-secondaryBackground, color-mix(in srgb, var(--vscode-foreground) 6%, transparent));
+  border-color: color-mix(in srgb, var(--vscode-foreground) 26%, transparent);
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+}
+
+.btn.primary,
+.action-row .btn.primary {
+  background: var(--vscode-button-background, #0078d4);
+  border-color: var(--vscode-button-background, #0078d4);
+  color: var(--vscode-button-foreground, #ffffff);
+}
+
+.endpoint input,
+.code-input {
+  border-color: color-mix(in srgb, var(--vscode-foreground) 30%, transparent);
+}
+
+/* ===== 外层栏目 Bar 与内层模块 Bar 分两套设计 ===== */
+.panel > .panel-head,
+.devices-head {
+  background: color-mix(in srgb, var(--vscode-foreground) 7%, transparent);
+  border-bottom: 1px solid var(--side-border);
+}
+
+.panel:not(.open) > .panel-head {
+  border-bottom-color: transparent;
+}
+
+.panel.open > .panel-head {
+  background: color-mix(in srgb, var(--vscode-foreground) 9%, transparent);
+}
+
+.panel-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 0;
+  background: transparent;
+  color: var(--vscode-foreground);
+}
+
+.panel.open .panel-icon {
+  background: transparent;
+  color: var(--vscode-foreground);
+}
+
+.panel-title,
+.devices-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.panel-chevron {
+  opacity: 0.9;
+}
+
+.pair-head,
+.pair-module.open > .pair-head {
+  background: transparent;
+  border-bottom: 0;
+}
+
+.pair-module.open {
+  border-left: 2px solid color-mix(in srgb, var(--vscode-foreground) 45%, transparent);
+  border-color: var(--side-border);
+  border-left-color: color-mix(in srgb, var(--vscode-foreground) 45%, transparent);
+}
+
+.module-icon,
+.pair-module.open .module-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vscode-foreground) 7%, transparent);
+  color: var(--side-muted);
+}
+
+.pair-module.open .pair-chevron {
+  opacity: 1;
+}
+
+.pair-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pair-desc {
+  font-size: 10.5px;
+  color: var(--side-muted);
+}
+
+.pair-body {
+  border-top: 1px solid var(--side-border);
+  background: transparent;
+}
+
+/* ===== 内层三个模块改成“列表行”，与外层灰色栏目 Bar 区分 ===== */
+.pair-modules {
+  border: 1px solid var(--side-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--side-surface);
+}
+
+.pair-module,
+.pair-module.open {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.pair-module + .pair-module {
+  border-top: 1px solid var(--side-border);
+}
+
+.pair-head,
+.pair-module.open > .pair-head {
+  background: transparent;
+  border: 0;
+  padding: 8px 10px;
+}
+
+.pair-head:hover {
+  background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
+}
+
+.module-icon,
+.pair-module.open .module-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--side-muted);
+}
+
+.module-icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.pair-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pair-desc {
+  font-size: 10.5px;
+}
+
+.pair-body {
+  border-top: 1px solid var(--side-border);
+  background: color-mix(in srgb, var(--vscode-foreground) 3%, transparent);
+  padding: 9px 10px;
+}
+
+.pair-chevron {
+  opacity: 0.55;
+}
+
+.pair-module.open .pair-chevron {
+  opacity: 1;
+}
+
+/* ADB 维护按钮铺满一行、两端对齐 */
+.action-row-muted {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.action-row-muted .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 2px 6px;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+/* ===== 内层三个模块：独立白色卡片，外层灰色 Bar 保持区分 ===== */
+.pair-panel-body {
+  background: color-mix(in srgb, var(--vscode-foreground) 3.5%, transparent);
+  padding: 8px;
+}
+
+.pair-modules {
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  gap: 8px;
+}
+
+.pair-module,
+.pair-module.open {
+  border: 1px solid var(--side-border);
+  border-left-width: 1px;
+  border-radius: 8px;
+  background: var(--vscode-editor-background, #ffffff);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+}
+
+.pair-module + .pair-module {
+  border-top: 1px solid var(--side-border);
+}
+
+.pair-module.open {
+  border-color: color-mix(in srgb, var(--vscode-foreground) 42%, transparent);
+}
+
+.pair-head,
+.pair-module.open > .pair-head {
+  background: transparent;
+  border: 0;
+  padding: 9px 10px;
+}
+
+.pair-module.open > .pair-head {
+  background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
+  border-bottom: 1px solid var(--side-border);
+}
+
+.module-icon,
+.pair-module.open .module-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--vscode-foreground) 7%, transparent);
+  color: var(--side-muted);
+}
+
+.pair-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pair-desc {
+  font-size: 10.5px;
+}
+
+.pair-body {
+  border-top: 1px solid var(--side-border);
+  background: transparent;
+  padding: 9px 10px;
+}
+
+.pair-chevron {
+  opacity: 0.55;
+}
+
+.pair-module.open .pair-chevron {
+  opacity: 1;
+}
+
+/* 配对与 IP 外层容器加轻微底色，和白卡片区分 */
+.pair-panel {
+  background: color-mix(in srgb, var(--vscode-focusBorder, #0078d4) 4%, var(--vscode-editor-background, #ffffff));
+  border-color: color-mix(in srgb, var(--vscode-focusBorder, #0078d4) 18%, var(--side-border));
+}
+
+.pair-panel > .panel-head,
+.pair-panel.open > .panel-head {
+  background: color-mix(in srgb, var(--vscode-focusBorder, #0078d4) 7%, var(--vscode-editor-background, #ffffff));
+}
+
+.pair-panel-body {
+  background: transparent;
+}
+
+/* ===== 栏目配色：ADB 淡橙、配对与 IP 淡紫 ===== */
+.adb-panel {
+  background: color-mix(in srgb, #f59e0b 6%, var(--vscode-editor-background, #ffffff));
+  border-color: color-mix(in srgb, #f59e0b 24%, var(--side-border));
+}
+
+.adb-panel > .panel-head,
+.adb-panel.open > .panel-head {
+  background: color-mix(in srgb, #f59e0b 12%, var(--vscode-editor-background, #ffffff));
+}
+
+.adb-panel .info-card {
+  background: var(--vscode-editor-background, #ffffff);
+}
+
+.pair-panel {
+  background: color-mix(in srgb, #8b5cf6 6%, var(--vscode-editor-background, #ffffff));
+  border-color: color-mix(in srgb, #8b5cf6 24%, var(--side-border));
+}
+
+.pair-panel > .panel-head,
+.pair-panel.open > .panel-head {
+  background: color-mix(in srgb, #8b5cf6 12%, var(--vscode-editor-background, #ffffff));
+}
+
+.adb-panel .hero-icon {
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+  color: #b45309;
+}
+
+.devices-panel {
+  background: var(--vscode-editor-background, #ffffff);
+}
+
+/* ADB 状态区不再使用独立底色/卡片，露出栏目容器底色 */
+.adb-hero,
+.adb-hero.error {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 4px 2px 6px;
+}
+
+.adb-hero .hero-icon {
+  width: 26px;
+  height: 26px;
+}
+
+/* ===== 横屏/底部面板宽布局：左 ADB + 设备，右 配对与 IP ===== */
+@media (min-width: 900px) {
+  .console {
+    display: grid;
+    grid-template-columns: minmax(300px, 38%) minmax(0, 62%);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 10px;
+    height: 100vh;
+    min-height: 0;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .adb-panel {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .devices-panel {
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 0;
+  }
+
+  .pair-panel {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .pair-panel > .panel-head {
+    flex: none;
+  }
+
+  .pair-panel-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .pair-modules {
+    width: 100%;
+  }
+
+  .pair-body {
+    padding: 12px;
+  }
+
+  .qr-box {
+    min-width: 160px;
+    min-height: 160px;
+  }
+
+  .qr-box svg {
+    width: 150px;
+    height: 150px;
+  }
+}
+
+/* 三个配对模块：默认淡边框，展开后加粗边框 */
+.pair-module {
+  border: 1px solid color-mix(in srgb, #8b5cf6 34%, var(--side-border));
+}
+
+.pair-module.open {
+  border: 2px solid color-mix(in srgb, #8b5cf6 68%, var(--vscode-foreground));
+  box-shadow: 0 1px 3px rgba(139, 92, 246, 0.12);
+}
+
+.pair-module + .pair-module {
+  border-top: 1px solid color-mix(in srgb, #8b5cf6 34%, var(--side-border));
+}
+
+.pair-module.open + .pair-module {
+  border-top: 1px solid color-mix(in srgb, #8b5cf6 34%, var(--side-border));
+}
+
+/* 展开模块四边统一 2px，避免被相邻模块的 border-top 覆盖 */
+.pair-module.open {
+  border: 2px solid color-mix(in srgb, #8b5cf6 68%, var(--vscode-foreground));
+}
+
+/* 横屏左右 1:1 */
+@media (min-width: 900px) {
+  .console {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* 栏目颜色：ADB 淡红，设备淡橙 */
+.adb-panel {
+  background: color-mix(in srgb, #ef4444 6%, var(--vscode-editor-background, #ffffff));
+  border-color: color-mix(in srgb, #ef4444 24%, var(--side-border));
+}
+
+.adb-panel > .panel-head,
+.adb-panel.open > .panel-head {
+  background: color-mix(in srgb, #ef4444 11%, var(--vscode-editor-background, #ffffff));
+}
+
+.adb-panel .hero-icon {
+  background: color-mix(in srgb, #ef4444 15%, transparent);
+  color: #b91c1c;
+}
+
+.devices-panel {
+  background: color-mix(in srgb, #f59e0b 6%, var(--vscode-editor-background, #ffffff));
+  border-color: color-mix(in srgb, #f59e0b 24%, var(--side-border));
+}
+
+.devices-head {
+  background: color-mix(in srgb, #f59e0b 11%, var(--vscode-editor-background, #ffffff));
+}
+
+.device-list {
+  background: transparent;
+}
+
+/* 设备卡片第二行与标题行拉开距离，避免按钮贴住上方 hover 区域 */
+.device-head {
+  padding: 8px 10px 4px;
+}
+
+.device-line {
+  padding: 4px 10px 9px;
+}
+
+.device-line .device-actions {
+  align-items: center;
+}
+
+.device-line .device-actions .btn {
+  min-height: 23px;
+}
+
+/* ADB 正常淡绿，异常淡红 */
+.adb-panel {
+  background: color-mix(in srgb, #22c55e 6%, var(--vscode-editor-background, #ffffff));
+  border-color: color-mix(in srgb, #22c55e 24%, var(--side-border));
+}
+
+.adb-panel > .panel-head,
+.adb-panel.open > .panel-head {
+  background: color-mix(in srgb, #22c55e 11%, var(--vscode-editor-background, #ffffff));
+}
+
+.adb-panel .hero-icon {
+  background: color-mix(in srgb, #22c55e 15%, transparent);
+  color: #15803d;
+}
+
+.adb-panel.error {
+  background: color-mix(in srgb, #ef4444 5%, var(--vscode-editor-background, #ffffff));
+  border-color: color-mix(in srgb, #ef4444 22%, var(--side-border));
+}
+
+.adb-panel.error > .panel-head,
+.adb-panel.error.open > .panel-head {
+  background: color-mix(in srgb, #ef4444 10%, var(--vscode-editor-background, #ffffff));
+}
+
+.adb-panel.error .hero-icon {
+  background: color-mix(in srgb, #ef4444 14%, transparent);
+  color: #b91c1c;
+}
+
+/* 刷新属于设备列表 */
+.devices-refresh {
+  flex: none;
+  min-height: 22px;
+  padding: 1px 9px;
+  font-size: 10.5px;
+}
+
+/* 展开设备：现代信息卡 + 底部操作区 */
+.device-extra {
+  padding: 6px 10px 9px;
+  gap: 8px;
+}
+
+.device-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+}
+
+.device-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 14%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vscode-foreground) 3.5%, transparent);
+}
+
+.device-detail.wide {
+  grid-column: 1 / -1;
+}
+
+.detail-label {
+  font-size: 9.5px;
+  letter-spacing: 0.3px;
+  color: var(--side-muted);
+}
+
+.detail-value {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--vscode-foreground);
+  overflow-wrap: anywhere;
+}
+
+.expanded-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.expanded-actions .btn {
+  flex: 1 1 auto;
+  min-height: 25px;
+  font-size: 11px;
+}
+
+.expanded-actions .btn.danger {
+  border-color: color-mix(in srgb, var(--vscode-errorForeground, #e5484d) 38%, transparent);
+  background: color-mix(in srgb, var(--vscode-errorForeground, #e5484d) 8%, transparent);
+  color: var(--vscode-errorForeground, #e5484d);
+}
+
+.expanded-actions .btn.danger:hover {
+  background: color-mix(in srgb, var(--vscode-errorForeground, #e5484d) 14%, transparent);
+}
+
+/* 固定 IP/操作行高度，展开折叠时 IP 不跳动 */
+.device-line {
+  height: 36px;
+  padding: 4px 10px 9px;
+  align-items: center;
+}
+
+/* 展开设备信息压缩：单行 label + value */
+.device-extra {
+  padding: 4px 8px 8px;
+  gap: 5px;
+}
+
+.device-details {
+  gap: 4px;
+}
+
+.device-detail {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 7px;
+  border-radius: 5px;
+}
+
+.detail-label {
+  flex: 0 0 auto;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.detail-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.expanded-actions {
+  margin-top: 3px;
+  gap: 4px;
+}
+
+.expanded-actions .btn {
+  min-height: 23px;
+  padding: 1px 6px;
+  font-size: 10.5px;
+}
+
+/* 内层模块：真实高度过渡，不用 max-height 抢跑 */
+.pair-body-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 280ms cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+.pair-module.open .pair-body-collapse {
+  grid-template-rows: 1fr;
+}
+
+.pair-body-collapse > .pair-body {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pair-body {
+  border-top: 0;
+}
+
+.pair-module.open .pair-body {
+  border-top: 1px solid var(--side-border);
+}
+
+.pair-body-collapse {
+  overflow: hidden;
+}
+
+/* 折叠状态去掉 body 上下 padding，避免 grid 0fr 仍占 18px */
+.pair-body {
+  padding: 0 10px;
+}
+
+.pair-module.open .pair-body {
+  padding: 9px 10px;
+}
+
+/* 面板使用 grid 高度过渡，避免 JS max-height 在结尾跳一下 */
+.panel-body {
+  padding: 0;
+}
+
+.panel-body-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: hidden;
+  transition: grid-template-rows 280ms cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+.panel:not(.open) > .panel-body-collapse {
+  grid-template-rows: 0fr;
+}
+
+.panel-body-collapse > .panel-body {
+  min-height: 0;
+}
+
+.panel-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+.pair-panel-collapse {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.pair-panel-inner {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* 横屏下配对与 IP 固定展开，不提供折叠 */
+@media (min-width: 900px) {
+  .pair-panel > .panel-head {
+    cursor: default;
+  }
+
+  .pair-panel .panel-chevron {
+    display: none;
+  }
+
+  .pair-panel > .panel-body-collapse {
+    grid-template-rows: 1fr;
+  }
+}
+
+/* 统一表单分组：标签、控件、已发现地址分组呈现 */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 16%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vscode-foreground) 2.5%, transparent);
+}
+
+.form-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--side-muted);
+}
+
+.chips {
+  margin-top: 1px;
+}
+
+.chip {
+  font-size: 10px;
+  padding: 1px 7px;
+}
+
+.pair-body > .actions {
+  margin-top: 1px;
+}
+
+.pair-body > .actions .btn.primary {
+  width: 100%;
+}
+
+/* 二维码模块的两个操作按钮同一行居中 */
+.pair-module[data-pair="qr"] .pair-body > .actions {
+  justify-content: center;
+  flex-wrap: nowrap;
+}
+
+.pair-module[data-pair="qr"] .pair-body > .actions .btn.primary {
+  width: auto;
+  flex: 0 0 auto;
+  min-width: 96px;
+}
+
+.pair-module[data-pair="qr"] .pair-body > .actions .btn {
+  flex: 0 0 auto;
+  min-width: 72px;
+}
+
+/* 侧边栏输入框增强可见性 */
+.endpoint input,
+.code-input {
+  border-color: color-mix(in srgb, var(--vscode-foreground) 36%, transparent);
+  background: var(--vscode-input-background, #ffffff);
+  color: var(--vscode-input-foreground, var(--vscode-foreground));
+}
+
+.code-input::placeholder {
+  color: color-mix(in srgb, var(--vscode-foreground) 55%, transparent);
+}
+
+/* ADB 标题栏右侧放「打开面板」 */
+.adb-panel {
+  position: relative;
+}
+
+.adb-panel .panel-head {
+  padding-right: 112px;
+}
+
+.panel-header-action {
+  position: absolute;
+  top: 6px;
+  right: 34px;
+  z-index: 2;
+  min-height: 23px;
+  padding: 1px 9px;
+  font-size: 10.5px;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 28%, transparent);
+  border-radius: 4px;
+  background: var(--vscode-button-secondaryBackground, color-mix(in srgb, var(--vscode-foreground) 6%, transparent));
+  color: var(--vscode-foreground);
+}
+
+.panel-header-action:hover {
+  background: var(--vscode-toolbar-hoverBackground, color-mix(in srgb, var(--vscode-foreground) 12%, transparent));
+}
+
+/* 打开面板按钮放在折叠箭头左侧 */
+.adb-panel .panel-head {
+  padding-right: 9px;
+}
+
+.adb-panel .panel-header-action {
+  right: 30px;
+}
+
+/* 设备卡片箭头：用伪元素精确居中 */
+.device-chevron {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 10px;
+  border: 0;
+  opacity: 0.7;
+  transform: none;
+}
+
+.device-chevron::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  transition: transform 0.18s ease;
+}
+
+.device-card.open .device-chevron::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.device-card.open .device-chevron {
+  transform: none;
+}
+
+/* ADB 的 Open Panel 与设备标题栏的 Refresh 对齐、同款样式 */
+.panel-header-action {
+  top: 50%;
+  right: 30px;
+  transform: translateY(-50%);
+  min-height: 22px;
+  padding: 1px 9px;
+  font-size: 10.5px;
+  line-height: 1.2;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 26%, transparent);
+  border-radius: 4px;
+  background: var(--vscode-button-secondaryBackground, color-mix(in srgb, var(--vscode-foreground) 6%, transparent));
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  box-shadow: none;
+}
+
+.devices-head {
+  padding-right: 30px;
+}
+
+.panel-header-action + .panel-chevron {
+  margin-left: 0;
+}
+
+/* 只调整 Open Panel，不动 Refresh 的位置 */
+.devices-head {
+  padding-right: 10px;
+}
+
+.panel-header-action {
+  right: 28px;
+}
+
+/* Open Panel：文字链样式，固定在 ADB 标题栏内，不随展开跑到内容区 */
+.panel-header-action {
+  position: absolute;
+  top: 7px;
+  right: 30px;
+  z-index: 2;
+  min-height: 0;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--vscode-textLink-foreground);
+  font-size: 11px;
+  line-height: 1.3;
+  box-shadow: none;
+  transform: none;
+}
+
+.panel-header-action:hover {
+  background: transparent;
+  text-decoration: underline;
+}
+
+.adb-panel .panel-head {
+  padding-right: 9px;
+}

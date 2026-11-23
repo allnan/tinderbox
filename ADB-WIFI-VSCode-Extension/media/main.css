@@ -1,0 +1,1392 @@
+:root {
+  color-scheme: light dark;
+  --app-width: 1180px;
+  --border: color-mix(in srgb, var(--vscode-foreground) 18%, transparent);
+  --border-strong: color-mix(in srgb, var(--vscode-foreground) 32%, transparent);
+  --muted: var(--vscode-descriptionForeground, rgba(128, 128, 128, 0.95));
+  --surface: color-mix(in srgb, var(--vscode-foreground) 4%, var(--vscode-editor-background));
+  --hover: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.12));
+  --focus: var(--vscode-focusBorder, #0078d4);
+  --accent: var(--vscode-button-background, #0078d4);
+  --accent-fg: var(--vscode-button-foreground, #ffffff);
+  --ok: var(--vscode-testing-iconPassed, var(--vscode-terminal-ansiGreen, #2ea043));
+  --info: var(--vscode-charts-blue, var(--vscode-textLink-foreground, #3794ff));
+  --link: var(--vscode-textLink-foreground, #4daafc);
+  --warn: var(--vscode-editorWarning-foreground, #cca700);
+  --err: var(--vscode-errorForeground, #f14c4c);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 1.45;
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1;
+}
+
+input {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: var(--app-width);
+  margin: 0 auto;
+  padding: 18px 24px 32px;
+}
+
+/* ---------------------------------------------------------------- 头部 */
+
+.app-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 4px 0 12px;
+  background: var(--vscode-editor-background);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 8px;
+  color: var(--accent-fg);
+  background: var(--accent);
+}
+
+.brand-mark svg {
+  width: 18px;
+  height: 18px;
+}
+
+.brand-copy {
+  min-width: 0;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+}
+
+.summary-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.summary-line .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: none;
+}
+
+.summary-line .dot.ok {
+  background: var(--ok);
+}
+
+.summary-line .dot.warn {
+  background: var(--warn);
+}
+
+.summary-line .dot.busy {
+  background: var(--info);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ---------------------------------------------------------------- 按钮 */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 4px 12px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: var(--hover);
+}
+
+.btn:focus-visible {
+  outline: 1px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background: var(--vscode-button-hoverBackground, var(--accent));
+}
+
+.btn-ghost {
+  border-color: var(--border);
+  color: var(--vscode-foreground);
+}
+
+.btn-ghost:hover {
+  background: var(--hover);
+}
+
+.btn-danger {
+  border-color: color-mix(in srgb, var(--err) 45%, transparent);
+  color: var(--err);
+}
+
+.btn-danger:hover {
+  background: color-mix(in srgb, var(--err) 10%, transparent);
+}
+
+.btn-sm {
+  min-height: 23px;
+  padding: 3px 9px;
+  font-size: 12px;
+}
+
+.btn[disabled] {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- 菜单 */
+
+.menu {
+  position: relative;
+}
+
+.menu > summary {
+  list-style: none;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu > summary::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  opacity: 0.65;
+}
+
+.menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 196px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--vscode-menu-background, var(--vscode-editorWidget-background, var(--vscode-editor-background)));
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  z-index: 30;
+}
+
+.menu-panel button {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-menu-foreground, var(--vscode-foreground));
+  text-align: left;
+}
+
+.menu-panel button:hover {
+  background: var(--vscode-menu-selectionBackground, var(--vscode-button-background));
+  color: var(--vscode-menu-selectionForeground, var(--vscode-button-foreground));
+}
+
+/* ---------------------------------------------------------------- 提示条 */
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--vscode-inputValidation-errorBorder, var(--err));
+  border-radius: 6px;
+  background: var(--vscode-inputValidation-errorBackground, color-mix(in srgb, var(--err) 12%, transparent));
+}
+
+.alert[hidden] {
+  display: none;
+}
+
+.alert-copy {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.alert-copy strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.alert-copy span {
+  font-size: 12px;
+  color: var(--muted);
+  word-break: break-word;
+}
+
+.alert-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ---------------------------------------------------------------- 左右分栏 */
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.62fr) minmax(330px, 0.88fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.pane {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.pane-devices {
+  display: flex;
+  flex-direction: column;
+  min-height: 560px;
+}
+
+.pane-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pane-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pane-title {
+  min-width: 0;
+}
+
+.pane-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pane-title h2::before {
+  content: "";
+  width: 3px;
+  height: 14px;
+  flex: none;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.pane-title p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.pane-meta {
+  align-self: center;
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.pane-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------------- 配对 */
+
+.segmented {
+  display: flex;
+  gap: 2px;
+  width: 100%;
+  padding: 2px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--vscode-editor-background);
+}
+
+.segmented button {
+  flex: 1;
+  min-height: 26px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.segmented button:hover {
+  background: var(--hover);
+  color: var(--vscode-foreground);
+}
+
+.segmented button[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+}
+
+.pair-view[hidden] {
+  display: none;
+}
+
+.qr-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 250px;
+  height: 250px;
+  margin: 0 auto 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #333333;
+}
+
+.qr-box.empty {
+  background: transparent;
+  border-style: dashed;
+}
+
+.qr-box.empty .qr-empty {
+  color: var(--muted);
+}
+
+.qr-box svg {
+  display: block;
+  width: 224px;
+  height: 224px;
+}
+
+.qr-empty {
+  padding: 18px;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+  color: #555555;
+}
+
+.qr-actions {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.qr-expiry {
+  margin-top: 7px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.qr-expiry.expired {
+  color: var(--err);
+}
+
+/* ---------------------------------------------------------------- 表单 */
+
+.form-grid {
+  display: grid;
+  gap: 13px;
+  margin-bottom: 2px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.field > label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.field-hint {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.field-hint:empty {
+  display: none;
+}
+
+.field-error {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--err);
+}
+
+.field-error[hidden] {
+  display: none;
+}
+
+.input {
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-input-border, var(--border));
+  border-radius: 4px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+}
+
+.input:focus {
+  outline: 1px solid var(--focus);
+  outline-offset: -1px;
+}
+
+.input::placeholder {
+  color: var(--vscode-input-placeholderForeground, var(--muted));
+}
+
+.input.mono {
+  font-family: var(--vscode-editor-font-family, Consolas, monospace);
+  font-size: 12px;
+}
+
+.endpoint-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.endpoint-row .ipv4 {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.endpoint-row .ipv4 input {
+  width: 38px;
+  padding: 4px 3px;
+  text-align: center;
+}
+
+.endpoint-row .ipv4 .dot {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.endpoint-row .ipv6-input {
+  width: 150px;
+}
+
+.endpoint-row .colon {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.endpoint-row .port {
+  width: 58px;
+  padding: 4px 3px;
+  text-align: center;
+}
+
+.endpoint-toggle {
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--link);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.endpoint-toggle:hover {
+  text-decoration: underline;
+}
+
+.endpoint-row .ipv6[hidden] {
+  display: none;
+}
+
+.inline-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.inline-field .input {
+  flex: 1 1 auto;
+}
+
+.inline-field .endpoint-row {
+  flex: 1 1 auto;
+}
+
+.inline-field .btn {
+  flex: none;
+}
+
+.code-input {
+  max-width: 150px;
+  font-family: var(--vscode-editor-font-family, Consolas, monospace);
+  font-size: 17px;
+  letter-spacing: 5px;
+  text-align: center;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chips:empty {
+  display: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--link);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--hover);
+}
+
+.chip .chip-strong {
+  font-family: var(--vscode-editor-font-family, Consolas, monospace);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- 配对 / 用 IP 连接（同级 TitleBar + 竖向互斥） */
+
+.stack {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 600px;
+}
+
+.stack-section {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--vscode-editor-background);
+  overflow: hidden;
+}
+
+.stack-section.active {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+.stack-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--vscode-foreground) 3%, transparent);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.stack-section.active .stack-head {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.stack-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stack-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.stack-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.stack-chevron {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  opacity: 0.65;
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
+}
+
+.stack-section.active .stack-chevron {
+  transform: rotate(45deg);
+}
+
+.stack-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.26s ease;
+}
+
+.stack-body-inner {
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 10px;
+  transition: padding 0.26s ease;
+}
+
+.stack-section.active .stack-body {
+  flex: 1 1 auto;
+  grid-template-rows: 1fr;
+}
+
+.stack-section.active .stack-body-inner {
+  padding-top: 8px;
+  padding-bottom: 10px;
+}
+
+#ip-stack .stack-body-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#ip-stack .stack-body-inner > .pane-hint {
+  margin-bottom: 0;
+}
+
+.connect-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.connect-actions .btn {
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------- 状态 */
+
+.status {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.status:empty {
+  display: none;
+}
+
+.status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: none;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.75;
+}
+
+.status.ok {
+  color: var(--ok);
+}
+
+.status.error {
+  color: var(--err);
+}
+
+.status.busy {
+  color: var(--info);
+}
+
+/* ---------------------------------------------------------------- 设备 */
+
+.devices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.device-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.device-group-title .count {
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.device-card {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--vscode-editor-background);
+}
+
+.device-card.connected {
+  border-left-color: var(--ok);
+}
+
+.device-card.paired {
+  border-left-color: var(--info);
+}
+
+.device-card:hover {
+  border-color: var(--border-strong);
+}
+
+.device-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.device-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.status-dot.ok {
+  background: var(--ok);
+}
+
+.status-dot.paired {
+  background: var(--info);
+}
+
+.device-name {
+  max-width: 420px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.badge.ok {
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  color: var(--ok);
+}
+
+.badge.paired {
+  border-color: color-mix(in srgb, var(--info) 55%, transparent);
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--info);
+}
+
+.device-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.device-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.device-meta .mono {
+  font-family: var(--vscode-editor-font-family, Consolas, monospace);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.device-meta .missing {
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.device-profile {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.device-details {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.device-details > summary {
+  width: fit-content;
+  cursor: pointer;
+  user-select: none;
+}
+
+.device-details > summary:hover {
+  color: var(--vscode-foreground);
+}
+
+.device-details ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.device-details li {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 9px;
+  border-radius: 4px;
+  background: var(--hover);
+  font-size: 11px;
+}
+
+.connection-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.connection-label {
+  font-family: var(--vscode-font-family);
+  font-size: 12px;
+  color: var(--vscode-foreground);
+}
+
+.connection-state {
+  flex: none;
+  font-family: var(--vscode-font-family);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.connection-state.on {
+  color: var(--ok);
+}
+
+.connection-serial {
+  font-family: var(--vscode-editor-font-family, Consolas, monospace);
+  font-size: 11px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.connection-address {
+  font-family: var(--vscode-editor-font-family, Consolas, monospace);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 8px;
+  min-height: 360px;
+  padding: 26px 16px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.empty-state .empty-icon {
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+.empty-state .empty-title {
+  font-weight: 600;
+}
+
+.empty-state .empty-text {
+  max-width: 420px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.empty-state .empty-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+/* ---------------------------------------------------------------- 底部状态栏 */
+
+.statusbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.statusbar-main {
+  display: flex;
+  flex: 1 1 520px;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.statusbar-side {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  min-width: 0;
+  text-align: right;
+}
+
+.statusbar-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.statusbar-label {
+  flex: none;
+  opacity: 0.85;
+}
+
+.statusbar-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusbar-note {
+  max-width: 560px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- 提示 */
+
+.toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 70;
+  max-width: 460px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--info);
+  border-radius: 6px;
+  background: var(--vscode-notifications-background, var(--vscode-editorWidget-background, var(--vscode-editor-background)));
+  color: var(--vscode-foreground);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  font-size: 12px;
+}
+
+.toast[hidden] {
+  display: none;
+}
+
+.toast.error {
+  border-left-color: var(--err);
+}
+
+.loading {
+  padding: 32px;
+  color: var(--muted);
+}
+
+@media (max-width: 1024px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pane-devices {
+    min-height: 0;
+  }
+
+  .statusbar-side {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+@media (max-width: 760px) {
+  .app {
+    padding: 14px 16px 28px;
+  }
+
+  .pane {
+    padding: 14px;
+  }
+
+  .qr-box {
+    width: 230px;
+    height: 230px;
+  }
+
+  .qr-box svg {
+    width: 204px;
+    height: 204px;
+  }
+
+  .device-name {
+    max-width: 100%;
+  }
+}
+
+/* 主面板设备信息：统一标签 + 值 */
+.device-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 12px 10px;
+}
+
+.device-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 12%, transparent);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--vscode-foreground) 2.5%, transparent);
+}
+
+.device-fact .fact-label {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.device-fact .fact-value {
+  font-size: 11.5px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* 主面板配对表单：统一成分组卡片 */
+.pane-pair .field {
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 16%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-foreground) 2.5%, transparent);
+  gap: 6px;
+}
+
+.pane-pair .field > label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vscode-descriptionForeground);
+}
+
+.pane-pair .field-hint {
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.pane-pair .inline-field {
+  gap: 6px;
+}
+
+.pane-pair .inline-field .btn {
+  min-height: 32px;
+}
+
+.pane-pair .chips {
+  margin-top: 1px;
+}
+
+.pane-pair .connect-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.pane-pair .connect-actions .btn {
+  width: 100%;
+  min-height: 32px;
+}
+
+.pane-pair .status:empty {
+  display: none;
+}
+
+.pane-pair .status {
+  padding: 6px 8px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--vscode-foreground) 3%, transparent);
+  font-size: 11px;
+}
+
+/* 主面板输入框增强可见性 */
+.input,
+.endpoint-row .ipv4 input,
+.endpoint-row .ipv6-input,
+.endpoint-row .port,
+.inline-field .code-input {
+  border-color: color-mix(in srgb, var(--vscode-foreground) 38%, transparent) !important;
+  background: var(--vscode-input-background, #ffffff);
+  color: var(--vscode-input-foreground, var(--vscode-foreground));
+  font-weight: 500;
+}
+
+.input:focus,
+.endpoint-row .ipv4 input:focus,
+.endpoint-row .ipv6-input:focus,
+.endpoint-row .port:focus,
+.inline-field .code-input:focus {
+  outline: 1px solid var(--vscode-focusBorder, #0e639c);
+  outline-offset: -1px;
+}
+
+.input::placeholder,
+.endpoint-row .port::placeholder,
+.inline-field .code-input::placeholder {
+  color: color-mix(in srgb, var(--vscode-foreground) 55%, transparent);
+}
+
+/* 主面板设备卡片向侧边栏结构靠拢：标题行 -> 地址+操作行 -> 资料 */
+.device-head {
+  padding-bottom: 2px;
+}
+
+.device-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px 8px;
+}
+
+.device-address {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vscode-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-address.missing {
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+.device-line .device-actions {
+  flex: none;
+  margin-left: auto;
+}
+
+.device-facts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-top: 2px;
+}
+
+@media (max-width: 780px) {
+  .device-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* 连接详情：标识与地址分标签展示 */
+.connection-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 5px;
+}
+
+.connection-fact {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.connection-fact-label {
+  flex: 0 0 86px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.connection-fact-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.connection-fact-label {
+  flex: 0 0 104px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

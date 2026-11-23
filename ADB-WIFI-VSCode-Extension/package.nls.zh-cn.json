@@ -1,0 +1,14 @@
+{
+  "category": "ADB-WIFI",
+  "command.show": "1. 显示页面",
+  "command.pair": "2. 配对",
+  "command.connect": "3. 连接",
+  "command.reconnect": "4. 重连",
+  "view.console": "控制台",
+  "config.adbPath.description": "adb 可执行文件或其所在目录。留空时优先读取 ADB 环境变量，其次 ANDROID_HOME / ANDROID_SDK_ROOT 下的 platform-tools，最后从 PATH 查找。",
+  "config.adbPath.markdownDescription": "adb 可执行文件或其所在目录。留空时优先读取 `ADB` 环境变量，其次 `ANDROID_HOME` / `ANDROID_SDK_ROOT` 下的 `platform-tools`，最后从 `PATH` 查找。也可以直接[选择 adb 文件](command:adbWifi.selectAdbPath)。",
+  "config.serverPort.description": "ADB 服务端口，默认 5038，避免与其它使用 5037 的 ADB 工具冲突；可按需修改。",
+  "config.refreshInterval.description": "正常状态下后台刷新设备与 mDNS 状态的间隔（毫秒）。二维码配对、失败后会自动调整。",
+  "command.openPanel": "打开面板",
+  "command.openSettings": "打开设置"
+}
