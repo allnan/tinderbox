@@ -4,6 +4,7 @@ import { type AutoGroupSettings, type PolicyConfig, type PolicyGroup, type Polic
 import { DropdownSelect } from './components/DropdownSelect'
 import { countryGroupDisplayName } from './core/countryFlags'
 import { resolveRuleSetPurpose, ruleSetPurposeCategories } from './core/ruleSetPurposes'
+import { PolicyRuleGroupOrderDialog } from './PolicyRuleGroupOrderDialog'
 
 type GeneratedGroup = { id: string; sourceId: string; name: string; provider: string; country: string | null; nodes: string[] }
 type ConfirmAction = (message: string, options?: { title?: string; confirmLabel?: string; destructive?: boolean }) => Promise<boolean>
@@ -545,6 +546,7 @@ function removeRuleAt(policy: PolicyConfig, index: number): PolicyConfig {
 }
 
 export function PolicyVisualWorkspace(props: Props) {
+  const [ruleOrderOpen, setRuleOrderOpen] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set())
   const [expandedAutoGroups, setExpandedAutoGroups] = useState<Set<string>>(() => new Set())
   const [newGroupOpen, setNewGroupOpen] = useState(false)
@@ -1218,10 +1220,32 @@ export function PolicyVisualWorkspace(props: Props) {
 
   return <div className="policy-visual-page">
     {props.topbarActionHost && createPortal(<>
+      <button className="button secondary" type="button" disabled={props.busy} onClick={() => setRuleOrderOpen(true)}>规则顺序</button>
       <button className="button secondary" type="button" disabled={props.busy} onClick={openNewGroup}>＋ 新建策略组</button>
       <button className="button secondary" type="button" disabled={props.busy || !props.dirty} onClick={props.onDiscard}>放弃修改</button>
       <button className="button primary" type="button" disabled={props.busy || !props.dirty || invalidNameIds.size > 0} onClick={props.onSave}>{props.busy ? '保存中…' : '保存方案'}</button>
     </>, props.topbarActionHost)}
+    {ruleOrderOpen && <PolicyRuleGroupOrderDialog
+      policy={props.policy}
+      policyName={props.policy.templateName}
+      busy={props.busy}
+      onClose={() => setRuleOrderOpen(false)}
+      onApply={(displayOrder, trafficOrder) => {
+        const groupsById = new Map(props.policy.groups.map((group) => [group.id, group]))
+        const orderedGroups = displayOrder.flatMap((id) => {
+          const group = groupsById.get(id)
+          return group ? [group] : []
+        })
+        for (const group of props.policy.groups) {
+          if (!orderedGroups.some((item) => item.id === group.id)) orderedGroups.push(group)
+        }
+        props.onChange({
+          ...props.policy,
+          groups: orderedGroups,
+          ...(trafficOrder ? { ruleGroupOrder: trafficOrder } : {}),
+        })
+      }}
+    />}
     <div className="policy-visual-overview">
       <div className="policy-visual-editor-columns">
         <section className="policy-visual-groups" aria-label="策略组">

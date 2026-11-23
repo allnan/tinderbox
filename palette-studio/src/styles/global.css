@@ -197,16 +197,12 @@ a {
   min-width: 218px;
 }
 
-.brand-mark {
+.product-icon {
+  display: block;
   width: 26px;
   height: 26px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: linear-gradient(150deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 55%, #8b5cf6) 100%);
-  box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--accent) 70%, transparent);
+  flex: 0 0 26px;
+  object-fit: contain;
 }
 
 .brand-name {

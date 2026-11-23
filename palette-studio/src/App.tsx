@@ -19,9 +19,7 @@ const TAB_ORDER: ProjectTab[] = ['palette', 'theme', 'controls', 'contrast', 'ex
 function LoadingSplash() {
   return (
     <div className="loading-splash">
-      <div className="loading-logo">
-        <Icon name="palette" size={28} />
-      </div>
+      <img className="loading-logo" src="./icon.png" alt="" aria-hidden="true" />
       <div className="loading-title">配色工坊</div>
       <div className="loading-desc">正在读取配色数据…</div>
       <span className="spinner" style={{ width: 18, height: 18, marginTop: 14 }} />

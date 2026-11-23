@@ -86,14 +86,16 @@ pub fn source_delete(
 #[tauri::command]
 pub async fn source_sync(
     state: State<'_, SharedState>,
+    task_id: String,
 ) -> Result<crate::model::SourceSyncResult, String> {
-    service::sync_sources(&state).await
+    service::sync_sources_with_proxy(&state, false, &task_id).await
 }
 
 #[tauri::command]
 pub async fn source_sync_mode(
     state: State<'_, SharedState>,
     mode: String,
+    task_id: String,
 ) -> Result<crate::model::SourceSyncResult, String> {
     let use_proxy = match mode.as_str() {
         "direct" => false,
@@ -103,7 +105,7 @@ pub async fn source_sync_mode(
     if use_proxy && !service::subscription_proxy_available(&state).await? {
         return Err("订阅代理当前不可连接，请检查代理设置和代理程序。".into());
     }
-    service::sync_sources_with_proxy(&state, use_proxy).await
+    service::sync_sources_with_proxy(&state, use_proxy, &task_id).await
 }
 
 #[tauri::command]
@@ -115,8 +117,26 @@ pub async fn subscription_proxy_check(state: State<'_, SharedState>) -> Result<b
 pub async fn source_sync_one(
     state: State<'_, SharedState>,
     source_id: String,
+    task_id: String,
 ) -> Result<crate::model::SourceSyncResult, String> {
-    service::sync_source(&state, &source_id).await
+    service::sync_source(&state, &source_id, &task_id).await
+}
+
+#[tauri::command]
+pub fn source_sync_cancel(state: State<'_, SharedState>, task_id: String) {
+    service::cancel_source_sync(&state, &task_id);
+}
+
+#[tauri::command]
+pub fn source_sync_progress(
+    state: State<'_, SharedState>,
+) -> Result<Vec<crate::model::SourceSyncProgress>, String> {
+    service::source_sync_progress(&state)
+}
+
+#[tauri::command]
+pub fn traffic_status(state: State<'_, SharedState>) -> Result<String, String> {
+    service::traffic_status(&state)
 }
 
 #[tauri::command]
@@ -293,30 +313,6 @@ pub async fn route_check(
         .map_err(|_| "读取 Mihomo 设置失败")?
         .clone();
     crate::route_check::check(&settings, &url).await
-}
-
-#[tauri::command]
-pub fn route_check_local(
-    state: State<'_, SharedState>,
-    policy_id: String,
-    url: String,
-) -> Result<crate::route_check::LocalRouteCheckResult, String> {
-    let policy = state
-        .policy_library
-        .read()
-        .map_err(|_| "读取本机策略方案失败")?
-        .items
-        .iter()
-        .find(|item| item.id == policy_id)
-        .cloned()
-        .ok_or_else(|| "请选择仍保存在本机的策略方案。".to_string())?;
-    let rule_sets = state
-        .rule_set_library
-        .read()
-        .map_err(|_| "读取规则集库失败")?
-        .clone();
-    let nodes = state.nodes.read().map_err(|_| "读取节点失败")?.clone();
-    crate::route_check::check_local(&policy, &rule_sets, &nodes, &url)
 }
 
 #[tauri::command]

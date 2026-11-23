@@ -21,6 +21,7 @@ const started = Date.now()
 fs.rmSync(path.join(BUILD, 'app'), { recursive: true, force: true })
 fs.rmSync(DIST, { recursive: true, force: true })
 fs.mkdirSync(DIST, { recursive: true })
+fs.copyFileSync(path.join(root, 'icon.png'), path.join(DIST, 'icon.png'))
 
 // 2) TypeScript 编译（CommonJS 输出，供 Rollup 打包 + 测试直接 require）
 log('编译 TypeScript…')

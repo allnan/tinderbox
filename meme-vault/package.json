@@ -18,7 +18,8 @@
     "quick-smoke": "node scripts/quick-smoke.mjs",
     "smoke": "node scripts/smoke.mjs",
     "check": "npm run typecheck && npm run build:web && npm run ui-smoke && npm run quick-smoke && npm run test",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "generate:icons": "node scripts/gen-icon.mjs && tauri icon app-icon.png --output src-tauri/icons"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.9.0",

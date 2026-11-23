@@ -11,9 +11,7 @@ import SettingsView from './views/SettingsView'
 function LoadingSplash() {
   return (
     <div className="loading-splash">
-      <div className="loading-logo">
-        <Icon name="bolt" size={26} />
-      </div>
+      <img className="loading-logo" src="./icon.png" alt="" aria-hidden="true" />
       <div className="loading-title">X 媒体工坊</div>
       <div className="loading-desc">正在读取桌面信息…</div>
       <span className="spinner" style={{ width: 18, height: 18, marginTop: 14 }} />

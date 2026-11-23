@@ -47,6 +47,7 @@ $alignedApk = Join-Path $buildRoot 'yao-pocket-pet-aligned.apk'
 $debugKey = Join-Path $buildRoot 'debug.keystore'
 $outputApk = Join-Path $buildRoot 'yao-pocket-pet.apk'
 $manifest = Join-Path $PSScriptRoot 'src\main\AndroidManifest.xml'
+$resourceRoot = Join-Path $PSScriptRoot 'src\main\res'
 $javaSource = Join-Path $PSScriptRoot 'src\main\java\com\tinderbox\yaopocketpet\MainActivity.java'
 
 New-Item -ItemType Directory -Force -Path $assetsRoot, $stagedImages, $classRoot, $dexRoot | Out-Null
@@ -66,7 +67,7 @@ if (Test-Path $classesDex) { Remove-Item $classesDex -Force }
 & $d8 --lib $androidJar --min-api 23 --output $dexRoot $classJar
 if ($LASTEXITCODE -ne 0) { throw "D8 失败，退出码 $LASTEXITCODE" }
 
-& $aapt package -f -M $manifest -I $androidJar -F $unsignedApk -A $assetsRoot --min-sdk-version 23 --target-sdk-version 28 --version-code 8 --version-name 1.7
+& $aapt package -f -M $manifest -S $resourceRoot -I $androidJar -F $unsignedApk -A $assetsRoot --min-sdk-version 23 --target-sdk-version 28 --version-code 8 --version-name 1.7
 if ($LASTEXITCODE -ne 0) { throw "aapt 失败，退出码 $LASTEXITCODE" }
 
 & $jar uf $unsignedApk -C $dexRoot classes.dex

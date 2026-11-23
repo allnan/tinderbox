@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 use url::Url;
 
 use crate::model::{
-    dynamic_node_range_id, AppSettings, AutoGroupSettings, PolicyConfig, PolicyGroup, ProxyNode,
-    Source, DYNAMIC_NODE_RANGE_PREFIX,
+    dynamic_node_range_id, AppSettings, AutoGroupSettings, PolicyConfig, PolicyGroup, PolicyRule,
+    ProxyNode, Source, DYNAMIC_NODE_RANGE_PREFIX,
 };
 
 fn unique_push(items: &mut Vec<String>, value: String) {
@@ -551,7 +551,7 @@ pub fn generate_profile(
     }
 
     let mut rules = Vec::new();
-    for rule in &policy.rules {
+    for rule in ordered_policy_rules(policy) {
         let line = if rule.kind.eq_ignore_ascii_case("MATCH") {
             format!("MATCH,{}", rule.target)
         } else if rule.value.trim().is_empty() {
@@ -590,4 +590,67 @@ pub fn generate_profile(
     }
     serde_yaml::to_string(&Value::Object(root))
         .map_err(|error| format!("生成 Clash 配置失败：{error}"))
+}
+
+/// Return rules in generated matching order. Explicitly ordered strategy-group
+/// rules are emitted after non-group rules, in configured group order; rules
+/// within each group retain their saved order. MATCH rules always remain last.
+pub fn ordered_policy_rules<'a>(policy: &'a PolicyConfig) -> Vec<&'a PolicyRule> {
+    if policy.rule_group_order.is_empty() {
+        let mut rules = policy
+            .rules
+            .iter()
+            .filter(|rule| !rule.kind.eq_ignore_ascii_case("MATCH"))
+            .collect::<Vec<_>>();
+        rules.extend(
+            policy
+                .rules
+                .iter()
+                .filter(|rule| rule.kind.eq_ignore_ascii_case("MATCH")),
+        );
+        return rules;
+    }
+
+    let group_id_by_name = policy
+        .groups
+        .iter()
+        .map(|group| (group.name.as_str(), group.id.as_str()))
+        .collect::<HashMap<_, _>>();
+    let mut group_order = policy
+        .rule_group_order
+        .iter()
+        .filter(|id| policy.groups.iter().any(|group| group.id == **id))
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    for group in &policy.groups {
+        if !group_order.contains(&group.id.as_str()) {
+            group_order.push(&group.id);
+        }
+    }
+
+    let mut ordinary_rules = Vec::new();
+    let mut grouped_rules = HashMap::<&str, Vec<&PolicyRule>>::new();
+    let mut match_rules = Vec::new();
+
+    for rule in &policy.rules {
+        if rule.kind.eq_ignore_ascii_case("MATCH") {
+            match_rules.push(rule);
+        } else if let Some(group_id) = group_id_by_name.get(rule.target.as_str()) {
+            grouped_rules.entry(group_id).or_default().push(rule);
+        } else {
+            ordinary_rules.push(rule);
+        }
+    }
+
+    for group_id in group_order {
+        if let Some(rules) = grouped_rules.remove(group_id) {
+            ordinary_rules.extend(rules);
+        }
+    }
+    // Keep invalid/legacy targets stable after known strategy-group rules.
+    for rules in grouped_rules.into_values() {
+        ordinary_rules.extend(rules);
+    }
+    ordinary_rules.extend(match_rules);
+    ordinary_rules
 }

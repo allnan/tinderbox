@@ -58,15 +58,11 @@
 }
 
 .loading-logo {
+  display: block;
   width: 58px;
   height: 58px;
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: linear-gradient(150deg, var(--accent), color-mix(in srgb, var(--accent) 45%, #8b5cf6));
-  box-shadow: 0 18px 40px -16px color-mix(in srgb, var(--accent) 80%, transparent);
+  object-fit: contain;
+  filter: drop-shadow(0 18px 18px color-mix(in srgb, var(--accent) 35%, transparent));
   margin-bottom: 8px;
 }
 
@@ -678,15 +674,11 @@
 }
 
 .about-logo {
+  display: block;
   width: 58px;
   height: 58px;
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: linear-gradient(150deg, var(--accent), color-mix(in srgb, var(--accent) 45%, #8b5cf6));
-  box-shadow: 0 14px 32px -16px color-mix(in srgb, var(--accent) 80%, transparent);
+  object-fit: contain;
+  filter: drop-shadow(0 14px 16px color-mix(in srgb, var(--accent) 35%, transparent));
   flex: 0 0 auto;
 }
 

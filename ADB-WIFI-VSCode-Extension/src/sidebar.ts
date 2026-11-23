@@ -59,6 +59,7 @@ export class AdbWifiSidebarProvider implements vscode.WebviewViewProvider, vscod
       void this.handleMessage(raw);
     });
     view.onDidChangeVisibility(() => {
+      this.postVisibility(view.visible);
       if (view.visible) {
         this.postState();
         this.flushPendingPair();
@@ -107,6 +108,10 @@ export class AdbWifiSidebarProvider implements vscode.WebviewViewProvider, vscod
     void this.view?.webview.postMessage({ type: "state", state: this.service.getState() });
   }
 
+  private postVisibility(visible: boolean): void {
+    void this.view?.webview.postMessage({ type: "visibility", visible });
+  }
+
   private toast(level: "info" | "error", text: string): void {
     void this.view?.webview.postMessage({ type: "toast", level, text });
   }
@@ -143,7 +148,11 @@ export class AdbWifiSidebarProvider implements vscode.WebviewViewProvider, vscod
     const message = raw as SidebarMessage;
     const type = safeText(message.type);
     try {
-      if (type === "ready") { this.postState(); return; }
+      if (type === "ready") {
+        this.postVisibility(this.view?.visible ?? true);
+        this.postState();
+        return;
+      }
       if (type === "refresh") { await this.service.refreshNow(true); return; }
       if (type === "redetect") { await this.service.redetect(); return; }
       if (type === "open-panel") { await vscode.commands.executeCommand("adbWifi.openPanel"); return; }
@@ -165,7 +174,6 @@ export class AdbWifiSidebarProvider implements vscode.WebviewViewProvider, vscod
         if (!result.ok) this.toast("error", result.message);
         return;
       }
-      if (type === "cancel-qr") { this.service.cancelQr(); return; }
       if (type === "pair-code") {
         const result = await this.service.pairWithCode(safeText(message.endpoint), safeText(message.code));
         this.toast(result.ok ? "info" : "error", result.message);

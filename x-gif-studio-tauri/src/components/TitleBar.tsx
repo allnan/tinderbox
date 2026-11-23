@@ -25,9 +25,7 @@ export function TitleBar() {
       }}
     >
       <div className="titlebar-brand">
-        <span className="brand-mark">
-          <Icon name="bolt" size={16} />
-        </span>
+        <img className="brand-mark" src="./icon.png" alt="" aria-hidden="true" />
         <div className="brand-text">
           <div className="brand-name">X 媒体工坊</div>
           <div className="brand-sub">解析 X 推文媒体 · 保存原文件 / 导出动图</div>

@@ -34,6 +34,7 @@ fn from_yaml(name: &str, url: &str, text: &str) -> Result<PolicyConfig, String> 
             .unwrap_or_else(|| json!({})),
         groups: Vec::new(),
         rules: Vec::new(),
+        rule_group_order: Vec::new(),
         auto_group_settings: Default::default(),
     };
     if let Some(groups) = root.get("proxy-groups").and_then(Value::as_array) {
@@ -291,6 +292,7 @@ fn from_acl4ssr(name: &str, url: &str, text: &str) -> Result<PolicyConfig, Strin
         rule_providers: json!({}),
         groups: Vec::new(),
         rules: Vec::new(),
+        rule_group_order: Vec::new(),
         auto_group_settings: Default::default(),
     };
     let mut provider_map = Map::new();

@@ -79,20 +79,11 @@ input {
 }
 
 .brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
+  display: block;
+  width: 38px;
+  height: 38px;
   flex: none;
-  border-radius: 8px;
-  color: var(--accent-fg);
-  background: var(--accent);
-}
-
-.brand-mark svg {
-  width: 18px;
-  height: 18px;
+  object-fit: contain;
 }
 
 .brand-copy {
@@ -472,16 +463,14 @@ input {
   flex-wrap: wrap;
 }
 
-.qr-expiry {
-  margin-top: 7px;
-  font-size: 12px;
-  text-align: center;
-  color: var(--muted);
+/* 固定宽度：倒计时刷新时按钮不抖动 */
+.qr-actions .btn {
+  width: 140px;
   font-variant-numeric: tabular-nums;
 }
 
-.qr-expiry.expired {
-  color: var(--err);
+.qr-countdown {
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------------------------------------------------------------- 表单 */

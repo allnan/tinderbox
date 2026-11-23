@@ -20,20 +20,7 @@ interface SidebarProps {
 }
 
 function BrandMark() {
-  return (
-    <svg viewBox="0 0 48 48" className="brand-mark" aria-hidden="true">
-      <defs>
-        <linearGradient id="brandGradient" x1="0" y1="0" x2="0.4" y2="1">
-          <stop offset="0" stopColor="#ffd45c" />
-          <stop offset="1" stopColor="#f29a3d" />
-        </linearGradient>
-      </defs>
-      <rect x="3" y="3" width="42" height="42" rx="11" fill="url(#brandGradient)" />
-      <circle cx="17.5" cy="19" r="3.2" fill="#4a3317" />
-      <circle cx="30.5" cy="19" r="3.2" fill="#4a3317" />
-      <path d="M15 27.5c1.8 5 5.4 7.5 9 7.5s7.2-2.5 9-7.5" fill="none" stroke="#4a3317" strokeWidth="3.2" strokeLinecap="round" />
-    </svg>
-  );
+  return <img src="./icon.png" className="brand-mark" alt="" aria-hidden="true" />;
 }
 
 export function Sidebar(props: SidebarProps) {

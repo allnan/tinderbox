@@ -320,12 +320,6 @@ export class AdbWifiService {
     }
   }
 
-  cancelQr(): void {
-    this.qr = null;
-    this.status.qr = { text: "已取消二维码配对。", level: "info" };
-    this.emit();
-  }
-
   async pairWithCode(endpointInput: string, codeInput: string): Promise<ActionResult> {
     const code = (codeInput ?? "").trim();
     if (!/^[0-9]{6}$/.test(code)) {

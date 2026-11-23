@@ -1,10 +1,11 @@
-const CACHE_NAME = 'yao-pocket-pet-static-v7';
+const CACHE_NAME = 'yao-pocket-pet-static-v8';
 const APP_FILES = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './manifest.webmanifest',
+  './assets/app-icon.png',
   './assets/yao-pixel.png',
   './assets/yao-actions-4x4.png'
 ];

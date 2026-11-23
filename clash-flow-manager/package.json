@@ -9,12 +9,14 @@
     "dev": "npm run prepare:dist && tauri dev",
     "build": "npm run prepare:dist && tauri build --no-bundle && node scripts/copy-release.mjs",
     "typecheck": "node scripts/typecheck.mjs",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "generate:icons": "tauri icon icon.png --output src-tauri/icons"
   },
   "dependencies": {
     "@tauri-apps/plugin-dialog": "2.8.4",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "28.0.1",

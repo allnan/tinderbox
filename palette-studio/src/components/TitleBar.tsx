@@ -44,9 +44,7 @@ export function TitleBar({
       }}
     >
       <div className="titlebar-brand">
-        <span className="brand-mark">
-          <Icon name="palette" size={15} />
-        </span>
+        <img className="product-icon" src="./icon.png" alt="" aria-hidden="true" />
         <div>
           <div className="brand-name">配色工坊</div>
           <div className="brand-sub">前端配色管理工具</div>

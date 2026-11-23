@@ -11,4 +11,5 @@ tsconfig.json
 **/*.map
 **/*.ts
 package-lock.json
+README.md
 .ui-preview/**

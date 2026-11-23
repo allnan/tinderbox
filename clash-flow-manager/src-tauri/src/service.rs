@@ -2,13 +2,19 @@ use chrono::Local;
 use std::{
     collections::{HashMap, HashSet},
     net::{Ipv4Addr, Ipv6Addr},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     time::Duration,
 };
 
 use crate::{
     conversion,
-    model::{PolicyConfig, PolicyLibrary, RuleSetItem, RuleSetLibrary, Source, SourceSyncResult},
+    model::{
+        PolicyConfig, PolicyLibrary, RuleSetItem, RuleSetLibrary, Source, SourceSyncProgress,
+        SourceSyncResult,
+    },
     paths, presets, rule_sets,
     state::AppState,
 };
@@ -75,29 +81,221 @@ async fn fetch_subscription_response(
 }
 
 pub async fn sync_sources(state: &Arc<AppState>) -> Result<SourceSyncResult, String> {
-    sync_sources_for(state, None, None).await
+    let task_id = format!("background-{}", uuid::Uuid::new_v4());
+    run_source_sync_task(state, None, None, &task_id, "all", "auto").await
 }
 
 pub async fn sync_sources_with_proxy(
     state: &Arc<AppState>,
     use_proxy: bool,
+    task_id: &str,
 ) -> Result<SourceSyncResult, String> {
-    sync_sources_for(state, None, Some(use_proxy)).await
+    run_source_sync_task(state, None, Some(use_proxy), task_id, "all", "manual").await
 }
 
 pub async fn sync_source(
     state: &Arc<AppState>,
     source_id: &str,
+    task_id: &str,
 ) -> Result<SourceSyncResult, String> {
-    sync_sources_for(state, Some(source_id), None).await
+    run_source_sync_task(state, Some(source_id), None, task_id, "single", "manual").await
+}
+
+async fn run_source_sync_task(
+    state: &Arc<AppState>,
+    only_source_id: Option<&str>,
+    use_proxy_override: Option<bool>,
+    task_id: &str,
+    kind: &str,
+    origin: &str,
+) -> Result<SourceSyncResult, String> {
+    let cancel = Arc::new(AtomicBool::new(false));
+    state
+        .source_sync_cancel_requests
+        .lock()
+        .map_err(|_| "订阅刷新状态锁定失败")?
+        .insert(task_id.to_string(), Arc::clone(&cancel));
+    let result = sync_sources_for(
+        state,
+        only_source_id,
+        use_proxy_override,
+        task_id,
+        kind,
+        origin,
+        Some(cancel.as_ref()),
+    )
+    .await;
+    finish_source_sync_task(state, task_id);
+    result
+}
+
+pub fn cancel_source_sync(state: &Arc<AppState>, task_id: &str) {
+    if let Ok(cancel_requests) = state.source_sync_cancel_requests.lock() {
+        if let Some(cancel) = cancel_requests.get(task_id) {
+            cancel.store(true, Ordering::Relaxed);
+        }
+    }
+    if let Ok(mut tasks) = state.source_sync_progress.lock() {
+        for task in tasks
+            .values_mut()
+            .filter(|task| task.task_id == task_id && task.active)
+        {
+            task.cancel_requested = true;
+            task.phase = "正在停止刷新…".into();
+        }
+    }
+}
+
+pub fn source_sync_progress(state: &Arc<AppState>) -> Result<Vec<SourceSyncProgress>, String> {
+    let mut progress = state
+        .source_sync_progress
+        .lock()
+        .map(|progress| progress.values().cloned().collect::<Vec<_>>())
+        .map_err(|_| "读取订阅刷新进度失败".to_string())?;
+    progress.sort_by(|left, right| left.id.cmp(&right.id));
+    Ok(progress)
+}
+
+pub fn traffic_status(state: &Arc<AppState>) -> Result<String, String> {
+    state
+        .last_traffic_status
+        .lock()
+        .map(|status| status.clone())
+        .map_err(|_| "读取流量状态失败".into())
+}
+
+fn set_source_sync_progress(
+    state: &Arc<AppState>,
+    task_id: &str,
+    kind: &str,
+    origin: &str,
+    source_id: Option<&str>,
+    active: bool,
+    completed: usize,
+    total: usize,
+    source_name: &str,
+    phase: &str,
+) {
+    let id = match source_id {
+        Some(source_id) => format!("{task_id}::source::{source_id}"),
+        None => task_id.to_string(),
+    };
+    let cancel_requested = state
+        .source_sync_cancel_requests
+        .lock()
+        .ok()
+        .and_then(|requests| requests.get(task_id).cloned())
+        .is_some_and(|cancel| cancel.load(Ordering::Relaxed));
+    if let Ok(mut progress) = state.source_sync_progress.lock() {
+        progress.insert(
+            id.clone(),
+            SourceSyncProgress {
+                id,
+                task_id: task_id.into(),
+                kind: kind.into(),
+                origin: origin.into(),
+                source_id: source_id.map(str::to_string),
+                active,
+                cancel_requested,
+                completed,
+                total,
+                source_name: source_name.into(),
+                phase: phase.into(),
+            },
+        );
+    }
+}
+
+fn finish_source_sync_task(state: &Arc<AppState>, task_id: &str) {
+    if let Ok(mut progress) = state.source_sync_progress.lock() {
+        progress.retain(|_, task| task.task_id != task_id);
+    }
+    if let Ok(mut requests) = state.source_sync_cancel_requests.lock() {
+        requests.remove(task_id);
+    }
+}
+
+fn set_sync_status(state: &Arc<AppState>, status: &str) {
+    if let Ok(mut current) = state.sync_status.lock() {
+        *current = status.into();
+    }
+}
+
+async fn wait_for_source_sync_cancel(cancel_requested: &AtomicBool) {
+    while !cancel_requested.load(Ordering::Relaxed) {
+        tokio::time::sleep(Duration::from_millis(40)).await;
+    }
 }
 
 async fn sync_sources_for(
     state: &Arc<AppState>,
     only_source_id: Option<&str>,
     use_proxy_override: Option<bool>,
+    task_id: &str,
+    task_kind: &str,
+    origin: &str,
+    cancellation: Option<&AtomicBool>,
 ) -> Result<SourceSyncResult, String> {
-    let _sync_guard = state.source_sync_lock.lock().await;
+    if only_source_id.is_none() && cancellation.is_some() {
+        let waiting_sources = state
+            .sources
+            .read()
+            .map_err(|_| "读取订阅来源失败")?
+            .clone();
+        let waiting_targets = waiting_sources
+            .iter()
+            .filter(|source| source.enabled)
+            .collect::<Vec<_>>();
+        set_source_sync_progress(
+            state,
+            task_id,
+            task_kind,
+            origin,
+            None,
+            true,
+            0,
+            waiting_targets.len(),
+            "",
+            "等待当前刷新完成",
+        );
+        if origin == "clashVerge" {
+            set_sync_status(state, "Clash Verge 正在等待订阅刷新");
+        } else if origin == "auto" {
+            set_sync_status(state, "自动刷新订阅正在等待当前任务");
+        } else {
+            set_sync_status(state, "批量订阅刷新正在等待当前任务");
+        }
+        for source in waiting_targets {
+            set_source_sync_progress(
+                state,
+                task_id,
+                "source",
+                origin,
+                Some(&source.id),
+                true,
+                0,
+                1,
+                &source.name,
+                "等待刷新",
+            );
+        }
+    }
+    let _batch_sync_guard = if only_source_id.is_none() {
+        Some(if let Some(cancel) = cancellation {
+            tokio::select! {
+                guard = state.source_sync_lock.lock() => guard,
+                _ = wait_for_source_sync_cancel(cancel) => {
+                    set_source_sync_progress(state, task_id, task_kind, origin, None, false, 0, 0, "", "已停止，未开始刷新");
+                    set_sync_status(state, "刷新已停止；没有更改订阅数据");
+                    return Err("已停止刷新；原有订阅数据已保留".into());
+                }
+            }
+        } else {
+            state.source_sync_lock.lock().await
+        })
+    } else {
+        None
+    };
     let sources = state
         .sources
         .read()
@@ -131,8 +329,76 @@ async fn sync_sources_for(
     };
     let mut errors = Vec::new();
     let now = Local::now().to_rfc3339();
+    let targets = sources
+        .iter()
+        .filter(|source| {
+            only_source_id
+                .map(|source_id| source.id == source_id)
+                .unwrap_or(source.enabled)
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    if cancellation.is_some() {
+        if let Some(source_id) = only_source_id {
+            let source = targets
+                .first()
+                .map(|source| source.name.as_str())
+                .unwrap_or("");
+            set_source_sync_progress(
+                state,
+                task_id,
+                task_kind,
+                origin,
+                Some(source_id),
+                true,
+                0,
+                1,
+                source,
+                "正在准备刷新",
+            );
+        } else {
+            if let Ok(mut progress) = state.source_sync_progress.lock() {
+                progress.retain(|_, task| task.task_id != task_id || task.kind != "source");
+            }
+            set_source_sync_progress(
+                state,
+                task_id,
+                task_kind,
+                origin,
+                None,
+                true,
+                0,
+                targets.len(),
+                "",
+                "正在准备刷新",
+            );
+            for source in &targets {
+                set_source_sync_progress(
+                    state,
+                    task_id,
+                    "source",
+                    origin,
+                    Some(&source.id),
+                    true,
+                    0,
+                    1,
+                    &source.name,
+                    "等待刷新",
+                );
+            }
+        }
+        let status = if origin == "clashVerge" {
+            "Clash Verge 正在刷新订阅"
+        } else if origin == "auto" {
+            "自动刷新订阅正在运行"
+        } else {
+            "正在准备订阅刷新"
+        };
+        set_sync_status(state, status);
+    }
+    let mut completed = 0;
 
-    for source in &sources {
+    for source in &targets {
         let should_sync = only_source_id
             .map(|source_id| source.id == source_id)
             .unwrap_or(source.enabled);
@@ -144,6 +410,53 @@ async fn sync_sources_for(
             .position(|item| item.id == source.id)
             .unwrap_or(0);
         let result = async {
+            if cancellation.is_some() {
+                let progress_kind = if only_source_id.is_some() {
+                    task_kind
+                } else {
+                    "source"
+                };
+                set_source_sync_progress(
+                    state,
+                    task_id,
+                    progress_kind,
+                    origin,
+                    Some(&source.id),
+                    true,
+                    0,
+                    1,
+                    &source.name,
+                    "正在连接订阅服务器",
+                );
+                if only_source_id.is_none() {
+                    set_source_sync_progress(
+                        state,
+                        task_id,
+                        task_kind,
+                        origin,
+                        None,
+                        true,
+                        completed,
+                        targets.len(),
+                        &source.name,
+                        "正在连接订阅服务器",
+                    );
+                }
+                let label = if origin == "clashVerge" {
+                    "Clash Verge 正在刷新"
+                } else {
+                    "正在刷新订阅"
+                };
+                set_sync_status(
+                    state,
+                    &format!(
+                        "{label}（{}/{}）：{}",
+                        completed + 1,
+                        targets.len(),
+                        source.name
+                    ),
+                );
+            }
             let response = fetch_subscription_response(&client, &source.url, using_proxy).await?;
             if !response.status().is_success() {
                 return Err(format!("订阅返回 HTTP {}", response.status().as_u16()));
@@ -169,10 +482,76 @@ async fn sync_sources_for(
                 .get("profile-web-page-url")
                 .and_then(|value| value.to_str().ok())
                 .map(str::to_string);
+            if cancellation.is_some() {
+                let progress_kind = if only_source_id.is_some() {
+                    task_kind
+                } else {
+                    "source"
+                };
+                set_source_sync_progress(
+                    state,
+                    task_id,
+                    progress_kind,
+                    origin,
+                    Some(&source.id),
+                    true,
+                    0,
+                    1,
+                    &source.name,
+                    "正在读取订阅内容",
+                );
+                if only_source_id.is_none() {
+                    set_source_sync_progress(
+                        state,
+                        task_id,
+                        task_kind,
+                        origin,
+                        None,
+                        true,
+                        completed,
+                        targets.len(),
+                        &source.name,
+                        "正在读取订阅内容",
+                    );
+                }
+            }
             let body = response
                 .text()
                 .await
                 .map_err(|_| "无法读取订阅响应内容".to_string())?;
+            if cancellation.is_some() {
+                let progress_kind = if only_source_id.is_some() {
+                    task_kind
+                } else {
+                    "source"
+                };
+                set_source_sync_progress(
+                    state,
+                    task_id,
+                    progress_kind,
+                    origin,
+                    Some(&source.id),
+                    true,
+                    0,
+                    1,
+                    &source.name,
+                    "正在解析节点",
+                );
+                if only_source_id.is_none() {
+                    set_source_sync_progress(
+                        state,
+                        task_id,
+                        task_kind,
+                        origin,
+                        None,
+                        true,
+                        completed,
+                        targets.len(),
+                        &source.name,
+                        "正在解析节点",
+                    );
+                }
+            }
             let configs = conversion::parse_subscription(&body, &content_type)?;
             if configs.is_empty() {
                 return Err("订阅中没有代理节点".to_string());
@@ -184,8 +563,19 @@ async fn sync_sources_for(
                 &body,
             );
             Ok((conversion::tag_nodes(source, configs), subscription_info))
-        }
-        .await;
+        };
+        let result = if let Some(cancel) = cancellation {
+            tokio::select! {
+                result = result => result,
+                _ = wait_for_source_sync_cancel(cancel) => {
+                    set_source_sync_progress(state, task_id, task_kind, origin, only_source_id, false, completed, targets.len(), "", "已停止；保留刷新前的订阅数据");
+                    set_sync_status(state, "刷新已停止；保留本次刷新前的订阅数据");
+                    return Err("已停止刷新；本次结果未写入，原有订阅数据已保留".into());
+                }
+            }
+        } else {
+            result.await
+        };
         match result {
             Ok((mut nodes, subscription_info)) => {
                 updated_sources[source_index].node_count = nodes.len();
@@ -209,6 +599,140 @@ async fn sync_sources_for(
                 updated_nodes.extend(retained_nodes);
             }
         }
+        completed += 1;
+        if cancellation.is_some() {
+            let progress_kind = if only_source_id.is_some() {
+                task_kind
+            } else {
+                "source"
+            };
+            let phase = if errors
+                .iter()
+                .any(|error| error.starts_with(&format!("{}：", source.name)))
+            {
+                "刷新失败，保留已有节点"
+            } else {
+                "来源读取完成，等待保存"
+            };
+            set_source_sync_progress(
+                state,
+                task_id,
+                progress_kind,
+                origin,
+                Some(&source.id),
+                true,
+                1,
+                1,
+                &source.name,
+                phase,
+            );
+            if only_source_id.is_none() {
+                set_source_sync_progress(
+                    state,
+                    task_id,
+                    task_kind,
+                    origin,
+                    None,
+                    true,
+                    completed,
+                    targets.len(),
+                    &source.name,
+                    phase,
+                );
+            }
+        }
+    }
+    if cancellation.is_some() && cancellation.is_some_and(|cancel| cancel.load(Ordering::Relaxed)) {
+        set_source_sync_progress(
+            state,
+            task_id,
+            task_kind,
+            origin,
+            None,
+            false,
+            completed,
+            targets.len(),
+            "",
+            "已停止；保留刷新前的订阅数据",
+        );
+        set_sync_status(state, "刷新已停止；保留本次刷新前的订阅数据");
+        return Err("已停止刷新；本次结果未写入，原有订阅数据已保留".into());
+    }
+
+    let _single_commit_guard = if only_source_id.is_some() {
+        Some(if let Some(cancel) = cancellation {
+            tokio::select! {
+                guard = state.source_sync_lock.lock() => guard,
+                _ = wait_for_source_sync_cancel(cancel) => {
+                    set_source_sync_progress(state, task_id, task_kind, origin, only_source_id, false, completed, targets.len(), "", "已停止，未保存刷新结果");
+                    return Err("已停止刷新；本次结果未写入，原有订阅数据已保留".into());
+                }
+            }
+        } else {
+            state.source_sync_lock.lock().await
+        })
+    } else {
+        None
+    };
+
+    if let Some(source_id) = only_source_id {
+        let original_source = sources
+            .iter()
+            .find(|source| source.id == source_id)
+            .ok_or("找不到要保存的订阅来源")?;
+        let fetched_source = updated_sources
+            .iter()
+            .find(|source| source.id == source_id)
+            .cloned()
+            .ok_or("找不到要保存的订阅来源")?;
+        let mut merged_sources = state
+            .sources
+            .read()
+            .map_err(|_| "读取订阅来源失败")?
+            .clone();
+        let current_source = merged_sources
+            .iter_mut()
+            .find(|source| source.id == source_id)
+            .ok_or("订阅来源已删除，刷新结果未保存")?;
+        let settings_changed = current_source.url != original_source.url
+            || current_source.name != original_source.name
+            || current_source.prefix != original_source.prefix
+            || current_source.region_hint != original_source.region_hint
+            || current_source.include_prefix != original_source.include_prefix
+            || current_source.include_flag != original_source.include_flag
+            || current_source.include_country != original_source.include_country
+            || current_source.include_original_name != original_source.include_original_name;
+        if settings_changed {
+            return Err("订阅设置在刷新期间发生变化，请重新刷新该来源".into());
+        }
+        current_source.node_count = fetched_source.node_count;
+        current_source.last_updated = fetched_source.last_updated;
+        current_source.last_error = fetched_source.last_error;
+        current_source.subscription_info = fetched_source.subscription_info;
+        let mut merged_nodes = state.nodes.read().map_err(|_| "读取节点失败")?.clone();
+        merged_nodes.retain(|node| node.source_id != source_id);
+        merged_nodes.extend(
+            updated_nodes
+                .into_iter()
+                .filter(|node| node.source_id == source_id),
+        );
+        updated_sources = merged_sources;
+        updated_nodes = merged_nodes;
+    }
+    if cancellation.is_some_and(|cancel| cancel.load(Ordering::Relaxed)) {
+        set_source_sync_progress(
+            state,
+            task_id,
+            task_kind,
+            origin,
+            only_source_id,
+            false,
+            completed,
+            targets.len(),
+            "",
+            "已停止，未保存刷新结果",
+        );
+        return Err("已停止刷新；本次结果未写入，原有节点数据已保留".into());
     }
     {
         let mut current = state.sources.write().map_err(|_| "保存订阅来源失败")?;
@@ -218,9 +742,51 @@ async fn sync_sources_for(
         let mut current = state.nodes.write().map_err(|_| "保存节点失败")?;
         *current = updated_nodes.clone();
     }
-    state.save_sources()?;
-    state.save_nodes()?;
-    state.regenerate_profile()?;
+    if let Err(error) = state.save_sources() {
+        set_source_sync_progress(
+            state,
+            task_id,
+            task_kind,
+            origin,
+            only_source_id,
+            false,
+            completed,
+            targets.len(),
+            "",
+            "保存订阅来源失败",
+        );
+        return Err(error);
+    }
+    if let Err(error) = state.save_nodes() {
+        set_source_sync_progress(
+            state,
+            task_id,
+            task_kind,
+            origin,
+            only_source_id,
+            false,
+            completed,
+            targets.len(),
+            "",
+            "保存节点失败",
+        );
+        return Err(error);
+    }
+    if let Err(error) = state.regenerate_profile() {
+        set_source_sync_progress(
+            state,
+            task_id,
+            task_kind,
+            origin,
+            only_source_id,
+            false,
+            completed,
+            targets.len(),
+            "",
+            "生成配置失败",
+        );
+        return Err(error);
+    }
     let status = if let Some(source_id) = only_source_id {
         let source_name = updated_sources
             .iter()
@@ -245,9 +811,7 @@ async fn sync_sources_for(
             errors.len()
         )
     };
-    if let Ok(mut current) = state.sync_status.lock() {
-        *current = status;
-    }
+    set_sync_status(state, &status);
     if let Ok(mut current) = state.last_sync.lock() {
         *current = now.clone();
     }
@@ -358,6 +922,34 @@ pub async fn auto_sync_loop(state: Arc<AppState>) {
             }
         }
         tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+}
+
+pub async fn profile_refresh_loop(state: Arc<AppState>) {
+    let Some(mut requests) = state.profile_refresh.take_receiver() else {
+        return;
+    };
+    while requests.recv().await.is_some() {
+        while requests.try_recv().is_ok() {}
+        if !state.profile_refresh.has_pending() {
+            continue;
+        }
+
+        if let Ok(mut status) = state.sync_status.lock() {
+            *status = "Clash Verge 正在刷新订阅".into();
+        }
+        let task_id = format!("clash-verge-{}", uuid::Uuid::new_v4());
+        let result = run_source_sync_task(&state, None, None, &task_id, "all", "clashVerge")
+            .await
+            .map(|_| ());
+        if let Err(error) = &result {
+            if let Ok(mut status) = state.sync_status.lock() {
+                *status = format!("Clash Verge 触发订阅刷新失败：{error}");
+            }
+        }
+
+        while requests.try_recv().is_ok() {}
+        state.profile_refresh.finish_pending(result);
     }
 }
 
@@ -610,11 +1202,16 @@ pub fn save_settings(
             paths::write_json("policy.json", &*active_policy)?;
         }
     }
+    let sync_subscriptions_on_profile_refresh = settings.sync_subscriptions_on_profile_refresh;
     {
         let mut current = state.settings.write().map_err(|_| "设置锁定失败")?;
         *current = settings;
     }
     state.save_settings()?;
+    state.profile_sync_subscriptions.store(
+        sync_subscriptions_on_profile_refresh,
+        std::sync::atomic::Ordering::Relaxed,
+    );
     state.regenerate_profile()
 }
 

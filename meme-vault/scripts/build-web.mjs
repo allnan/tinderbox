@@ -106,6 +106,7 @@ export async function buildWeb() {
 
   await fs.rm(distDir, { recursive: true, force: true });
   await fs.mkdir(path.join(distDir, "assets"), { recursive: true });
+  await fs.copyFile(path.join(root, "icon.png"), path.join(distDir, "icon.png"));
 
   await bundleEntry("main.js", "app.js", true);
   await bundleEntry("quick.js", "quick.js", false);

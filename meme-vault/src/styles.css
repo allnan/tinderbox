@@ -173,8 +173,10 @@ kbd {
 }
 
 .brand-mark {
+  display: block;
   width: 40px;
   height: 40px;
+  object-fit: contain;
   filter: drop-shadow(0 6px 14px rgba(242, 154, 61, 0.28));
 }
 

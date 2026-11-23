@@ -8,7 +8,7 @@
   const openDevices = new Set();
   let openPair = null;
   let qrRequested = false;
-  let qrCanceled = false;
+  let viewVisible = true;
   let requestedPair = null;
 
   const ICONS = {
@@ -427,6 +427,7 @@ const ANIM_EASING = "cubic-bezier(0.2, 0.75, 0.25, 1)";
     pairInner.appendChild(pairModules);
     buildPairModules(pairModules);
     shell.pairModules = pairModules;
+    shell.pairPanel = pairPanel;
     function applyPair() {
       const open = wideLayout.matches ? true : pairPanel.classList.contains("open");
       pairPanel.classList.toggle("open", open);
@@ -439,12 +440,14 @@ const ANIM_EASING = "cubic-bezier(0.2, 0.75, 0.25, 1)";
       pairPanel.classList.toggle("open", next);
       pairHead.setAttribute("aria-expanded", next ? "true" : "false");
       pairCollapse.inert = !next;
+      if (next) requestQrIfNeeded();
     });
     wideLayout.addEventListener("change", function () {
       if (wideLayout.matches) {
         pairPanel.classList.add("open");
         pairHead.setAttribute("aria-expanded", "true");
         pairCollapse.inert = false;
+        requestQrIfNeeded();
       }
     });
     applyPair();
@@ -637,7 +640,7 @@ const ANIM_EASING = "cubic-bezier(0.2, 0.75, 0.25, 1)";
     head.addEventListener("click", function () {
       openPair = openPair === key ? null : key;
       applyPairOpen(false);
-      if (openPair === "qr") { qrCanceled = false; requestQrIfNeeded(); }
+      if (openPair === "qr") requestQrIfNeeded();
     });
     section.appendChild(head);
     section.appendChild(collapse);
@@ -669,27 +672,27 @@ const ANIM_EASING = "cubic-bezier(0.2, 0.75, 0.25, 1)";
     qrNotice.hidden = true;
     qr.body.appendChild(qrNotice);
     const qrBox = el("div", "qr-box");
-    qrBox.appendChild(el("div", "qr-empty", "展开后自动生成二维码"));
+    qrBox.appendChild(el("div", "qr-empty", "正在生成二维码…"));
     qr.body.appendChild(qrBox);
-    const qrExpiry = el("div", "expiry");
-    qr.body.appendChild(qrExpiry);
     const qrActions = el("div", "actions actions-center");
-    qrActions.appendChild(button("重新生成", "btn primary", function () {
+    const qrGenerate = button("", "btn primary", function () {
       qrRequested = true;
-      qrCanceled = false;
       post({ type: "generate-qr" });
-    }));
-    qrActions.appendChild(button("取消", "btn", function () {
-      qrRequested = false;
-      qrCanceled = true;
-      post({ type: "cancel-qr" });
-    }));
+    });
+    const qrGenerateLabel = el("span", "qr-generate-label", "生成二维码");
+    const qrGenerateCount = el("span", "qr-countdown");
+    qrGenerateCount.hidden = true;
+    qrGenerate.appendChild(qrGenerateLabel);
+    qrGenerate.appendChild(qrGenerateCount);
+    qrActions.appendChild(qrGenerate);
     qr.body.appendChild(qrActions);
     qr.status = el("div", "module-status center");
     qr.body.appendChild(qr.status);
     qr.qrBox = qrBox;
-    qr.qrExpiry = qrExpiry;
     qr.notice = qrNotice;
+    qr.generate = qrGenerate;
+    qr.generateLabel = qrGenerateLabel;
+    qr.generateCount = qrGenerateCount;
 
     const code = shell.code;
     code.notice = el("div", "module-notice");
@@ -778,19 +781,24 @@ const ANIM_EASING = "cubic-bezier(0.2, 0.75, 0.25, 1)";
     shell.openPairPanel();
     openPair = target;
     setPairModulesInstant();
-    if (openPair === "qr") {
-      qrCanceled = false;
-      requestQrIfNeeded();
-    }
+    if (openPair === "qr") requestQrIfNeeded();
     const module = shell[openPair];
     if (module && module.section && typeof module.section.scrollIntoView === "function") {
       module.section.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }
 
+  /** 二维码区域当前是否真正可见：视图可见、配对区展开，且二维码模块展开。 */
+  function qrDisplayed() {
+    if (!viewVisible || openPair !== "qr") return false;
+    if (MODE !== "console") return true;
+    return !!shell.pairPanel && shell.pairPanel.classList.contains("open");
+  }
+
   function requestQrIfNeeded() {
     if (current === null || !shell || !shell.qr) return;
-    if (current.qr.active || qrRequested || qrCanceled) return;
+    if (!qrDisplayed()) return;
+    if (current.qr.active || qrRequested) return;
     if (current.qrStatus && current.qrStatus.level === "busy") return;
     if (!current.adb || !current.adb.found) return;
     qrRequested = true;
@@ -802,12 +810,14 @@ const ANIM_EASING = "cubic-bezier(0.2, 0.75, 0.25, 1)";
     if (state.qr.active && state.qr.svg) {
       shell.qr.qrBox.textContent = "";
       shell.qr.qrBox.innerHTML = state.qr.svg;
-      shell.qr.qrExpiry.textContent = state.qr.expiresAt ? "有效期剩余 " + formatRemaining(state.qr.expiresAt) : "";
     } else {
       shell.qr.qrBox.textContent = "";
-      shell.qr.qrBox.appendChild(el("div", "qr-empty", state.qrStatus && state.qrStatus.level === "busy" ? "正在生成二维码…" : "展开后自动生成二维码"));
-      shell.qr.qrExpiry.textContent = "";
+      shell.qr.qrBox.appendChild(el("div", "qr-empty", state.qrStatus && state.qrStatus.level === "error" ? "二维码暂不可用" : "正在生成二维码…"));
     }
+    const qrActive = !!(state.qr.active && state.qr.svg);
+    shell.qr.generateLabel.textContent = qrActive ? "重新生成" : "生成二维码";
+    shell.qr.generateCount.hidden = !qrActive;
+    updateQrCountdown();
     setStatus(shell.qr.status, state.qrStatus);
     setStatus(shell.code.status, state.pairStatus);
     setStatus(shell.ip.status, state.connectStatus);
@@ -842,8 +852,15 @@ const ANIM_EASING = "cubic-bezier(0.2, 0.75, 0.25, 1)";
   }
 
   function formatRemaining(expiresAt) {
-    const seconds = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+    const seconds = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
     return String(Math.floor(seconds / 60)).padStart(2, "0") + ":" + String(seconds % 60).padStart(2, "0");
+  }
+
+  /** 把剩余有效期合并进「重新生成」按钮，固定宽度避免数字跳动。 */
+  function updateQrCountdown() {
+    if (current === null || !shell.qr || !shell.qr.generateCount) return;
+    if (!current.qr.active || typeof current.qr.expiresAt !== "number") return;
+    shell.qr.generateCount.textContent = "· " + formatRemaining(current.qr.expiresAt);
   }
 
   function update(state) {
@@ -871,18 +888,21 @@ const ANIM_EASING = "cubic-bezier(0.2, 0.75, 0.25, 1)";
     const message = event.data;
     if (message === null || typeof message !== "object") return;
     if (message.type === "state") update(message.state);
-    else if (message.type === "toast") showToast(message.level, message.text);
+    else if (message.type === "visibility") {
+      // 隐藏只暂停自动生成，已经生成的二维码保留到自然过期。
+      const visible = message.visible !== false;
+      if (visible === viewVisible) return;
+      viewVisible = visible;
+      qrRequested = false;
+      if (visible) requestQrIfNeeded();
+    } else if (message.type === "toast") showToast(message.level, message.text);
     else if (message.type === "show-pair") {
       requestedPair = message.module === "ip" ? "ip" : "qr";
       if (shell && typeof shell.openPairPanel === "function") applyShowPair();
     }
   });
 
-  setInterval(function () {
-    if (MODE === "pair" && shell.qr && openPair === "qr" && current && current.qr && current.qr.active && current.qr.expiresAt) {
-      shell.qr.qrExpiry.textContent = "有效期剩余 " + formatRemaining(current.qr.expiresAt);
-    }
-  }, 1000);
+  setInterval(updateQrCountdown, 1000);
 
   post({ type: "ready" });
 }());

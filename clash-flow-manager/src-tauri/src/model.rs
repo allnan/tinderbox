@@ -136,6 +136,8 @@ pub struct PolicyConfig {
     #[serde(default)]
     pub rules: Vec<PolicyRule>,
     #[serde(default)]
+    pub rule_group_order: Vec<String>,
+    #[serde(default)]
     pub auto_group_settings: BTreeMap<String, AutoGroupSettings>,
 }
 
@@ -256,6 +258,8 @@ pub struct AppSettings {
     pub use_subscription_proxy: bool,
     pub collect_enabled: bool,
     pub auto_update_enabled: bool,
+    #[serde(default = "default_true")]
+    pub sync_subscriptions_on_profile_refresh: bool,
     pub update_minutes: u64,
     pub profile_port: u16,
     pub mixed_port: u16,
@@ -284,6 +288,7 @@ impl Default for AppSettings {
             use_subscription_proxy: true,
             collect_enabled: true,
             auto_update_enabled: true,
+            sync_subscriptions_on_profile_refresh: true,
             update_minutes: 60,
             profile_port: 39127,
             mixed_port: 7890,
@@ -375,6 +380,22 @@ pub struct SourceSyncResult {
     pub updated_at: String,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceSyncProgress {
+    pub id: String,
+    pub task_id: String,
+    pub kind: String,
+    pub origin: String,
+    pub source_id: Option<String>,
+    pub active: bool,
+    pub cancel_requested: bool,
+    pub completed: usize,
+    pub total: usize,
+    pub source_name: String,
+    pub phase: String,
+}
+
 pub fn default_policy() -> PolicyConfig {
     PolicyConfig {
         template_name: "本地基础分流".into(),
@@ -431,6 +452,7 @@ pub fn default_policy() -> PolicyConfig {
                 options: Value::Object(Default::default()),
             },
         ],
+        rule_group_order: Vec::new(),
         auto_group_settings: BTreeMap::new(),
         rules: vec![
             PolicyRule {

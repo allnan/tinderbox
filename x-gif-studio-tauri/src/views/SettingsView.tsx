@@ -955,9 +955,7 @@ export default function SettingsView() {
 
         <Panel title="关于">
           <div className="about-block">
-            <div className="about-logo">
-              <Icon name="bolt" size={24} />
-            </div>
+            <img className="about-logo" src="./icon.png" alt="" aria-hidden="true" />
             <div>
               <div className="about-name">{info?.name ?? 'X 媒体工坊'}</div>
               <div className="about-desc">解析 X 推文媒体，保存原始文件，或导出 GIF / WebP 动图的 Windows 桌面工具</div>

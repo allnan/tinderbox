@@ -10,7 +10,7 @@
   "theme_color": "#eee5d4",
   "icons": [
     {
-      "src": "./assets/yao-pixel.png",
+      "src": "./assets/app-icon.png",
       "sizes": "1254x1254",
       "type": "image/png",
       "purpose": "any"

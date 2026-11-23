@@ -1,19 +1,24 @@
-use std::sync::{
-    atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering},
-    Arc, Mutex, RwLock,
+use std::{
+    collections::HashMap,
+    sync::{
+        atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering},
+        Arc, Mutex, RwLock,
+    },
 };
 use uuid::Uuid;
 
 use crate::{
     model::{
         default_policy, AppSettings, PolicyConfig, PolicyLibrary, ProxyNode, RuleSetLibrary,
-        SavedPolicy, Source,
+        SavedPolicy, Source, SourceSyncProgress,
     },
     paths,
 };
 
 pub struct AppState {
     pub source_sync_lock: tokio::sync::Mutex<()>,
+    pub source_sync_cancel_requests: Mutex<HashMap<String, Arc<AtomicBool>>>,
+    pub source_sync_progress: Mutex<HashMap<String, SourceSyncProgress>>,
     pub traffic_history_lock: Mutex<()>,
     pub traffic_history_generation: AtomicU64,
     pub sources: RwLock<Vec<Source>>,
@@ -29,6 +34,8 @@ pub struct AppState {
     pub profile_last_requested_at: Arc<AtomicI64>,
     pub profile_last_generated_at: Arc<AtomicI64>,
     pub profile_legacy_needs_update: Arc<AtomicBool>,
+    pub profile_sync_subscriptions: Arc<AtomicBool>,
+    pub profile_refresh: Arc<crate::server::ProfileRefreshSignal>,
     pub data_dir: String,
 }
 
@@ -199,18 +206,26 @@ impl AppState {
         let profile_legacy_needs_update = Arc::new(AtomicBool::new(
             request_time_marker_exists && previous_request_time <= 0,
         ));
+        let profile_sync_subscriptions = Arc::new(AtomicBool::new(
+            settings.sync_subscriptions_on_profile_refresh,
+        ));
+        let profile_refresh = crate::server::ProfileRefreshSignal::new();
         let port = crate::server::start(
             profile_path,
             settings.profile_port,
             token.clone(),
             Arc::clone(&profile_last_requested_at),
             Arc::clone(&profile_legacy_needs_update),
+            Arc::clone(&profile_sync_subscriptions),
+            Arc::clone(&profile_refresh),
         )?;
         let mut settings = settings;
         settings.profile_port = port;
         let _ = paths::write_json("settings.json", &settings);
         Ok(Arc::new(Self {
             source_sync_lock: tokio::sync::Mutex::new(()),
+            source_sync_cancel_requests: Mutex::new(HashMap::new()),
+            source_sync_progress: Mutex::new(HashMap::new()),
             traffic_history_lock: Mutex::new(()),
             traffic_history_generation: AtomicU64::new(0),
             sources: RwLock::new(sources),
@@ -226,6 +241,8 @@ impl AppState {
             profile_last_requested_at,
             profile_last_generated_at,
             profile_legacy_needs_update,
+            profile_sync_subscriptions,
+            profile_refresh,
             data_dir: data_dir.to_string_lossy().to_string(),
         }))
     }

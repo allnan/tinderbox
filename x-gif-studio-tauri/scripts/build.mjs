@@ -31,6 +31,7 @@ const replaceProcessEnv = {
 fs.rmSync(path.join(BUILD, 'app'), { recursive: true, force: true })
 fs.rmSync(DIST, { recursive: true, force: true })
 fs.mkdirSync(DIST, { recursive: true })
+fs.copyFileSync(path.join(root, 'icon.png'), path.join(DIST, 'icon.png'))
 
 log('编译 TypeScript…')
 const result = compileProject(root, APP_OUT)

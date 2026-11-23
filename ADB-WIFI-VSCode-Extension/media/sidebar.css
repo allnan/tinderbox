@@ -499,19 +499,6 @@ button {
   text-align: center;
 }
 
-.expiry {
-  align-self: center;
-  padding: 1px 8px;
-  border: 1px solid var(--side-border);
-  border-radius: 999px;
-  font-size: 10.5px;
-  color: var(--side-muted);
-}
-
-.expiry:empty {
-  display: none;
-}
-
 /* 分段 IP */
 .endpoint {
   display: flex;
@@ -767,11 +754,6 @@ button {
 .qr-box svg {
   width: 122px;
   height: 122px;
-}
-
-.expiry {
-  padding: 0 7px;
-  font-size: 10px;
 }
 
 .module-hint,
@@ -2096,21 +2078,29 @@ button {
   width: 100%;
 }
 
-/* 二维码模块的两个操作按钮同一行居中 */
+/* 二维码模块的操作按钮居中；固定宽度，倒计时刷新时不抖动 */
 .pair-module[data-pair="qr"] .pair-body > .actions {
   justify-content: center;
   flex-wrap: nowrap;
 }
 
 .pair-module[data-pair="qr"] .pair-body > .actions .btn.primary {
-  width: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 140px;
+  min-width: 140px;
   flex: 0 0 auto;
-  min-width: 96px;
+  font-variant-numeric: tabular-nums;
 }
 
 .pair-module[data-pair="qr"] .pair-body > .actions .btn {
   flex: 0 0 auto;
-  min-width: 72px;
+}
+
+.qr-countdown {
+  font-variant-numeric: tabular-nums;
 }
 
 /* 侧边栏输入框增强可见性 */

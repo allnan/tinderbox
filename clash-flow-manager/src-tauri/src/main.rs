@@ -11,6 +11,7 @@ mod route_check;
 mod rule_sets;
 mod server;
 mod service;
+mod single_instance;
 mod state;
 mod traffic;
 
@@ -25,13 +26,32 @@ fn tray_image() -> tauri::image::Image<'static> {
         .expect("Windows executable must contain the Clash Flow Manager application icon")
 }
 
+fn show_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
 fn main() {
+    #[cfg(windows)]
+    let _single_instance_guard = match single_instance::try_acquire() {
+        Ok(Some(guard)) => guard,
+        Ok(None) => return,
+        Err(error) => {
+            single_instance::show_lock_error(error);
+            return;
+        }
+    };
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let state = state::AppState::new().map_err(std::io::Error::other)?;
             app.manage(state.clone());
             traffic::start_collector(state.clone());
+            tauri::async_runtime::spawn(service::profile_refresh_loop(state.clone()));
             tauri::async_runtime::spawn(service::auto_sync_loop(state));
 
             let show = MenuItem::with_id(app, "show", "打开主界面", true, None::<&str>)?;
@@ -41,13 +61,13 @@ fn main() {
                 .icon(tray_image())
                 .tooltip("Clash 订阅与流量管理")
                 .menu(&menu)
-                .on_menu_event(|app, event| match event.id().as_ref() {
-                    "show" => {
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
+                .on_tray_icon_event(|tray, event| {
+                    if let tauri::tray::TrayIconEvent::DoubleClick { .. } = event {
+                        show_main_window(tray.app_handle());
                     }
+                })
+                .on_menu_event(|app, event| match event.id().as_ref() {
+                    "show" => show_main_window(app),
                     "quit" => app.exit(0),
                     _ => {}
                 })
@@ -71,6 +91,9 @@ fn main() {
             commands::source_sync,
             commands::source_sync_mode,
             commands::source_sync_one,
+            commands::source_sync_cancel,
+            commands::source_sync_progress,
+            commands::traffic_status,
             commands::subscription_proxy_check,
             commands::policy_save,
             commands::rule_set_preview,
@@ -91,7 +114,6 @@ fn main() {
             commands::backup_restore,
             commands::controller_check,
             commands::route_check,
-            commands::route_check_local,
             commands::usage_default_range,
             commands::window_minimize,
             commands::window_toggle_maximize,

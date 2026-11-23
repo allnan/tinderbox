@@ -26,7 +26,7 @@ export class AdbWifiPanel implements vscode.Disposable {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, "media")]
+        localResourceRoots: [this.context.extensionUri]
       }
     );
     this.panel = panel;
@@ -34,6 +34,10 @@ export class AdbWifiPanel implements vscode.Disposable {
     panel.webview.html = this.buildHtml(panel.webview);
     const messageDisposable = panel.webview.onDidReceiveMessage((message: unknown) => {
       void this.handleMessage(message);
+    }, null, this.disposables);
+    panel.onDidChangeViewState(() => {
+      this.postVisibility(panel.visible);
+      if (panel.visible) this.postState(this.service.getState());
     }, null, this.disposables);
     panel.onDidDispose(() => {
       messageDisposable.dispose();
@@ -62,6 +66,10 @@ export class AdbWifiPanel implements vscode.Disposable {
     void this.panel?.webview.postMessage({ type: "state", state });
   }
 
+  private postVisibility(visible: boolean): void {
+    void this.panel?.webview.postMessage({ type: "visibility", visible });
+  }
+
   private async handleMessage(raw: unknown): Promise<void> {
     if (typeof raw !== "object" || raw === null) return;
     const message = raw as Record<string, unknown>;
@@ -74,6 +82,7 @@ export class AdbWifiPanel implements vscode.Disposable {
             this.pendingFocus = null;
             this.postFocus(pending.tab, pending.mode);
           }
+          this.postVisibility(this.panel?.visible ?? true);
           this.postState(this.service.getState());
           return;
         case "refresh":
@@ -87,9 +96,6 @@ export class AdbWifiPanel implements vscode.Disposable {
           if (!result.ok) this.toast("error", result.message);
           return;
         }
-        case "cancel-qr":
-          this.service.cancelQr();
-          return;
         case "pair-code": {
           const endpoint = typeof message.endpoint === "string" ? message.endpoint : "";
           const code = typeof message.code === "string" ? message.code : "";
@@ -173,6 +179,7 @@ export class AdbWifiPanel implements vscode.Disposable {
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "media", "main.css"));
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "media", "main.js"));
     const i18nUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "media", "i18n.js"));
+    const iconUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "icon.png"));
     const lang = vscode.env.language.toLowerCase().startsWith("zh") ? "zh" : "en";
     const csp = [
       "default-src 'none'",
@@ -190,7 +197,7 @@ export class AdbWifiPanel implements vscode.Disposable {
   <title>${tr("ADB WIFI 无线调试", "ADB WIFI")}</title>
 </head>
 <body data-lang="${lang}">
-  <div id="app" class="app">
+  <div id="app" class="app" data-icon-src="${iconUri.toString()}">
     <div class="loading">正在加载 ADB WIFI…</div>
   </div>
   <div id="toast" class="toast" hidden></div>

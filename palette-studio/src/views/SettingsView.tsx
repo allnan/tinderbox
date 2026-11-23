@@ -247,9 +247,7 @@ export default function SettingsView() {
 
           <Panel title="关于">
             <div className="about-block">
-              <div className="about-logo">
-                <Icon name="palette" size={30} />
-              </div>
+              <img className="about-logo" src="./icon.png" alt="" aria-hidden="true" />
               <div>
                 <div className="about-name">配色工坊</div>
                 <div className="about-desc">前端配色管理工具 · 为每个前端项目生成、记录并导出专属配色。</div>

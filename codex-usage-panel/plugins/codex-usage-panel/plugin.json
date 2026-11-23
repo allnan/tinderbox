@@ -23,8 +23,8 @@
         "capabilities": [
           "Interactive"
         ],
-        "logo": "./assets/quota-gauge.svg",
-        "composerIcon": "./assets/quota-gauge.svg",
+        "logo": "./assets/icon.png",
+        "composerIcon": "./assets/icon.png",
         "defaultPrompt": "打开 Codex 用量预测页面。",
         "brandColor": "#168A52"
       },

@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { save as saveFileDialog } from '@tauri-apps/plugin-dialog'
-import { api, type AppSettings, type AppSnapshot, type PolicyConfig, type ProxyNode, type RuleSetItem, type RuleSetPreview, type SavedPolicy, type Source, type SourceSyncResult, type SubscriptionInfo, type UnmatchedConnection, type UsageRow, type UsageSummary } from './core/bridge'
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { api, type AppSettings, type AppSnapshot, type PolicyConfig, type ProxyNode, type RuleSetItem, type RuleSetPreview, type SavedPolicy, type Source, type SourceSyncProgress, type SourceSyncResult, type SubscriptionInfo, type UnmatchedConnection, type UsageRow, type UsageSummary } from './core/bridge'
 import { defaultPolicyPresetId, findPolicyPreset, findPolicyPresetGroup, policyPresetCount, policyPresetGroups } from './core/presetCatalog'
 import { resolveRuleSetPurpose, ruleSetPurposeCategories } from './core/ruleSetPurposes'
 import { countryGroupDisplayName } from './core/countryFlags'
@@ -13,6 +14,7 @@ import { RouteCheckPage } from './RouteCheckPage'
 type Page = 'sources' | 'policy' | 'rulesets' | 'profile' | 'usage' | 'settings' | 'routecheck'
 type Toast = { type: 'success' | 'error'; text: string }
 type RuleSetTask = { kind: 'single'; id: string; sync: boolean } | { kind: 'bulk'; sync: boolean; completed: number; total: number }
+type SourceSyncTask = SourceSyncProgress & { pending?: boolean }
 type PublicRuleSetSource = 'blackmatrix7' | 'acl4ssr' | 'metacubex' | 'loyalsoldier' | 'sukka'
 type RuleSetPurposeCategory = (typeof ruleSetPurposeCategories)[number]
 type PublicRuleSetPreset = {
@@ -240,13 +242,15 @@ export function App() {
   const dialogResolverRef = useRef<((confirmed: boolean) => void) | null>(null)
   const latestSnapshotRequest = useRef(0)
   const ruleSetBatchLock = useRef(false)
+  const sourceSyncCancelRequested = useRef(new Set<string>())
+  const activeSourceRefreshIds = useRef(new Set<string>())
   const [snapshot, setSnapshot] = useState<AppSnapshot | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
   const [dialog, setDialog] = useState<AppDialogModel | null>(null)
   const [busy, setBusy] = useState(false)
   const [ruleSetTask, setRuleSetTask] = useState<RuleSetTask | null>(null)
   const [ruleSetEditor, setRuleSetEditor] = useState<{ initial: RuleSetItem | null } | null>(null)
-  const [refreshingSourceId, setRefreshingSourceId] = useState<string | null>(null)
+  const [sourceSyncTasks, setSourceSyncTasks] = useState<SourceSyncTask[]>([])
   const [drafts, setDrafts] = useState<Record<string, Source>>({})
   const [collapsedSources, setCollapsedSources] = useState<Record<string, boolean>>({})
   const [newSource, setNewSource] = useState<Source | null>(null)
@@ -270,6 +274,7 @@ export function App() {
   const [usageTab, setUsageTab] = useState('detail')
   const [usage, setUsage] = useState<UsageSummary | null>(null)
   const [unmatchedConnections, setUnmatchedConnections] = useState<UnmatchedConnection[]>([])
+  const [trafficStatus, setTrafficStatus] = useState('等待连接 Mihomo')
 
   useEffect(() => {
     let mounted = true
@@ -375,6 +380,34 @@ export function App() {
     const timer = window.setInterval(refresh, 5000)
     return () => window.clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    let active = true
+    const poll = () => {
+      void api.sourceSyncProgress().then((progress) => {
+        if (!active) return
+        const activeTaskIds = new Set(progress.map((task) => task.taskId))
+        setSourceSyncTasks((current) => [
+          ...progress,
+          ...current.filter((task) => task.pending && !activeTaskIds.has(task.taskId)),
+        ])
+      }).catch(() => {})
+    }
+    poll()
+    const timer = window.setInterval(poll, 400)
+    return () => { active = false; window.clearInterval(timer) }
+  }, [])
+
+  useEffect(() => {
+    if (page !== 'usage') return
+    let active = true
+    const refreshStatus = () => {
+      void api.trafficStatus().then((status) => { if (active) setTrafficStatus(status) }).catch(() => {})
+    }
+    refreshStatus()
+    const timer = window.setInterval(refreshStatus, 1000)
+    return () => { active = false; window.clearInterval(timer) }
+  }, [page])
 
   useEffect(() => {
     if (!toast) return
@@ -600,10 +633,56 @@ export function App() {
     if (event.button === 0) runWindowCommand(api.startDragging)
   }
 
-  async function runSyncAction(action: () => Promise<SourceSyncResult>, title: string) {
+  function startSourceSyncTracking(
+    kind: SourceSyncTask['kind'],
+    total: number,
+    sourceId: string | null,
+    sourceName: string,
+    taskId: string,
+    origin: SourceSyncTask['origin'],
+  ) {
+    const task: SourceSyncTask = {
+      id: taskId,
+      taskId,
+      kind,
+      origin,
+      sourceId,
+      active: true,
+      cancelRequested: false,
+      completed: 0,
+      total,
+      sourceName,
+      phase: '正在准备刷新',
+      pending: true,
+    }
+    setSourceSyncTasks((current) => [...current.filter((item) => item.taskId !== taskId), task])
+    return () => setSourceSyncTasks((current) => current.filter((item) => item.taskId !== taskId))
+  }
+
+  async function stopSourceSync(taskId: string) {
+    if (sourceSyncCancelRequested.current.has(taskId) || sourceSyncTasks.some((task) => task.taskId === taskId && task.pending)) return
+    sourceSyncCancelRequested.current.add(taskId)
+    setSourceSyncTasks((current) => current.map((task) => task.taskId === taskId ? { ...task, cancelRequested: true, phase: '正在停止刷新…' } : task))
+    try {
+      await api.cancelSourceSync(taskId)
+    } catch (error) {
+      sourceSyncCancelRequested.current.delete(taskId)
+      setToast({ type: 'error', text: `停止刷新失败：${String(error)}` })
+    }
+  }
+
+  async function runSyncAction(action: (taskId: string) => Promise<SourceSyncResult>, title: string) {
+    if (busy || activeSourceRefreshIds.current.size > 0 || sourceSyncTasks.some((task) => task.active)) return
+    const total = snapshot?.sources.filter((source) => source.enabled).length ?? 0
+    if (total === 0) {
+      setToast({ type: 'error', text: '没有启用的订阅来源，本次未更新节点。' })
+      return
+    }
+    const taskId = `manual-all-${crypto.randomUUID()}`
+    const stopTracking = startSourceSyncTracking('all', total, null, '', taskId, 'manual')
     setBusy(true)
     try {
-      const result = await action()
+      const result = await action(taskId)
       await reload()
       if (result.errors.length > 0) {
         setToast({
@@ -616,19 +695,29 @@ export function App() {
         setToast({ type: 'error', text: '没有启用的订阅来源，本次未更新节点。' })
       }
     } catch (error) {
-      setToast({ type: 'error', text: String(error) })
+      const message = String(error)
+      if (sourceSyncCancelRequested.current.has(taskId) || /已停止刷新/.test(message)) {
+        setToast({ type: 'success', text: '订阅刷新已停止；本次结果未写入，原有节点数据已保留。' })
+        await refreshSnapshot().catch(() => {})
+      } else {
+        setToast({ type: 'error', text: message })
+      }
     } finally {
+      stopTracking()
+      sourceSyncCancelRequested.current.delete(taskId)
       setBusy(false)
     }
   }
 
   async function runSourceSyncAction(source: Source, saveBeforeRefresh = false, closeNewSource = false) {
-    setBusy(true)
-    setRefreshingSourceId(source.id)
+    if (busy || activeSourceRefreshIds.current.has(source.id) || sourceSyncTasks.some((task) => task.active && task.sourceId === source.id)) return
+    activeSourceRefreshIds.current.add(source.id)
+    const taskId = `single-${source.id}-${crypto.randomUUID()}`
+    const stopTracking = startSourceSyncTracking('single', 1, source.id, source.name, taskId, 'manual')
     try {
       if (saveBeforeRefresh) await api.saveSource(source)
       if (closeNewSource) setNewSource(null)
-      const result = await api.syncSource(source.id)
+      const result = await api.syncSource(source.id, taskId)
       await reload()
       const updatedSource = result.sources.find((item) => item.id === source.id)
       if (result.errors.length > 0) {
@@ -637,10 +726,29 @@ export function App() {
         setToast({ type: 'success', text: `${source.name} 刷新完成，共 ${updatedSource?.nodeCount ?? 0} 个节点。` })
       }
     } catch (error) {
-      setToast({ type: 'error', text: String(error) })
+      const message = String(error)
+      if (sourceSyncCancelRequested.current.has(taskId) || /已停止刷新/.test(message)) {
+        setToast({ type: 'success', text: `${source.name} 刷新已停止；原有节点数据已保留。` })
+        await refreshSnapshot().catch(() => {})
+      } else {
+        setToast({ type: 'error', text: message })
+      }
     } finally {
-      setRefreshingSourceId(null)
-      setBusy(false)
+      stopTracking()
+      activeSourceRefreshIds.current.delete(source.id)
+      sourceSyncCancelRequested.current.delete(taskId)
+    }
+  }
+
+  async function copyTrafficSite(site: string) {
+    const value = site.trim()
+    if (!value) return
+    const address = /^[a-z][a-z\d+.-]*:\/\//i.test(value) ? value : `https://${value}`
+    try {
+      await navigator.clipboard.writeText(address)
+      setToast({ type: 'success', text: `网站链接已复制：${address}` })
+    } catch {
+      setToast({ type: 'error', text: '复制失败，请检查剪贴板权限' })
     }
   }
 
@@ -851,7 +959,7 @@ export function App() {
     const current = snapshot?.policyLibrary.items.find((candidate) => candidate.id === selectedPolicyId)
     const dirty = !selectedPolicyId || !current || JSON.stringify(current.config) !== JSON.stringify(policyDraft)
     if (dirty && !await requestConfirmation('当前方案有未保存的修改。新建空白方案会放弃这些修改，是否继续？', { title: '放弃未保存修改', confirmLabel: '继续新建' })) return false
-    const blankPolicy: PolicyConfig = { templateName: trimmedName, templateUrl: '', templateContent: '', ruleProviders: {}, groups: [], rules: [], autoGroupSettings: {} }
+    const blankPolicy: PolicyConfig = { templateName: trimmedName, templateUrl: '', templateContent: '', ruleProviders: {}, groups: [], rules: [], ruleGroupOrder: [], autoGroupSettings: {} }
     setBusy(true)
     try {
       const result = await api.savePolicy(blankPolicy, null, false)
@@ -1027,7 +1135,7 @@ export function App() {
     <div className="app-shell">
       <div className="window-titlebar">
         <div className="window-titlebar-brand" onMouseDown={startWindowDrag}>
-          <img className="window-titlebar-mark" src="./assets/app-icon.svg" alt="" aria-hidden="true" />
+          <img className="window-titlebar-mark" src="./icon.png" alt="" aria-hidden="true" />
           <span>Clash 订阅与流量管理</span>
         </div>
         <div className="window-titlebar-main">
@@ -1041,7 +1149,7 @@ export function App() {
       </div>
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand-mark" src="./assets/app-icon.svg" alt="" aria-hidden="true" />
+          <img className="brand-mark" src="./icon.png" alt="" aria-hidden="true" />
           <div><strong>Clash 管家</strong><small>本机订阅与流量</small></div>
         </div>
         <div className="side-label">工作区</div>
@@ -1100,8 +1208,10 @@ export function App() {
             totalNodes={totalNodes}
             enabledSources={enabledSources}
             newSource={newSource}
-            busy={busy}
-            onRefreshAll={(mode) => void runSyncAction(() => api.syncSourcesWithMode(mode), mode === 'direct' ? '直连更新节点' : '代理更新节点')}
+            busy={busy || sourceSyncTasks.some((task) => task.kind === 'all' && task.active)}
+            sourceSyncTasks={sourceSyncTasks}
+            stopSourceSync={(taskId) => void stopSourceSync(taskId)}
+            onRefreshAll={(mode) => void runSyncAction((taskId) => api.syncSourcesWithMode(mode, taskId), mode === 'direct' ? '直连更新节点' : '代理更新节点')}
             onNewSource={setNewSource}
             onNewSourceChange={(key, value) => setNewSource((source) => source ? { ...source, [key]: value } : source)}
             onAdd={() => void addSource()}
@@ -1109,7 +1219,6 @@ export function App() {
             updateDraft={updateDraft}
             collapsedSources={collapsedSources}
             toggleSource={(id) => setCollapsedSources((current) => ({ ...current, [id]: !(current[id] ?? true) }))}
-            refreshingSourceId={refreshingSourceId}
             saveSource={(source) => void runAction(() => api.saveSource(source), '来源已保存')}
             reorderSources={(sourceIds) => runAction(() => api.reorderSources(sourceIds), '订阅顺序已保存')}
             refreshSource={(source) => void runSourceSyncAction(source, true)}
@@ -1214,6 +1323,7 @@ export function App() {
 
           {page === 'usage' && <UsagePage
             snapshot={snapshot}
+            trafficStatus={trafficStatus}
             fromDate={fromDate}
             toDate={toDate}
             setFromDate={(value) => { setFromDate(value); setRangePreset('custom') }}
@@ -1226,6 +1336,7 @@ export function App() {
             usageTab={usageTab}
             setUsageTab={setUsageTab}
             query={() => void refreshUsage()}
+            copySite={(site) => void copyTrafficSite(site)}
             clearHistory={() => void clearTrafficHistory()}
             openSettings={openSettings}
             busy={busy}
@@ -1243,11 +1354,7 @@ export function App() {
             exportBackup={() => void exportBackup()}
             importBackup={(file) => void importBackup(file)}
           />}
-          {page === 'routecheck' && <RouteCheckPage
-            settings={snapshot?.settings ?? null}
-            policies={snapshot?.policyLibrary.items ?? []}
-            activePolicyId={snapshot?.policyLibrary.activeId ?? ''}
-          />}
+          {page === 'routecheck' && <RouteCheckPage settings={snapshot?.settings ?? null} />}
         </section>
       </main>
       {toast && <div className={'toast ' + toast.type}><b>{toast.type === 'success' ? '✓' : '!'}</b><span>{toast.text}</span></div>}
@@ -1274,8 +1381,15 @@ function TopbarActionPortal(props: { host: HTMLDivElement | null; children: Reac
   return props.host ? createPortal(props.children, props.host) : null
 }
 
-function SummaryMetric(props: { label: string; value: string; detail: string; icon: string }) {
-  return <div className="summary-card"><div className="summary-icon">{props.icon}</div><div className="summary-copy"><span>{props.label}</span><strong>{props.value}</strong><small>{props.detail}</small></div></div>
+type SummaryMetricIcon = 'total' | 'download' | 'upload' | 'average'
+
+function SummaryMetric(props: { label: string; value: string; detail: string; icon: SummaryMetricIcon }) {
+  return <div className="summary-card"><div className={'summary-icon ' + props.icon} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    {props.icon === 'total' && <><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5V12h8.5" /></>}
+    {props.icon === 'download' && <><path d="M12 4v10m0 0 4-4m-4 4-4-4" /><path d="M5 16.5v3h14v-3" /></>}
+    {props.icon === 'upload' && <><path d="M12 14V4m0 0L8 8m4-4 4 4" /><path d="M5 16.5v3h14v-3" /></>}
+    {props.icon === 'average' && <><circle cx="12" cy="12" r="8.5" /><path d="M12 7v5l3.5 2" /></>}
+  </svg></div><div className="summary-copy"><span>{props.label}</span><strong>{props.value}</strong><small>{props.detail}</small></div></div>
 }
 
 function WorkflowNav(props: { page: Page; snapshot: AppSnapshot | null; totalNodes: number; onNavigate: (page: Page) => void }) {
@@ -1698,6 +1812,8 @@ function SourcePage(props: {
   enabledSources: number
   newSource: Source | null
   busy: boolean
+  sourceSyncTasks: SourceSyncTask[]
+  stopSourceSync: (taskId: string) => void
   onRefreshAll: (mode: 'direct' | 'proxy') => void
   onNewSource: (source: Source | null) => void
   onNewSourceChange: (key: keyof Source, value: string | boolean) => void
@@ -1706,13 +1822,19 @@ function SourcePage(props: {
   updateDraft: (id: string, key: keyof Source, value: string | boolean) => void
   collapsedSources: Record<string, boolean>
   toggleSource: (id: string) => void
-  refreshingSourceId: string | null
   saveSource: (source: Source) => void
   reorderSources: (sourceIds: string[]) => Promise<boolean>
   refreshSource: (source: Source) => void
   deleteSource: (source: Source, skipConfirmation?: boolean) => void
 }) {
   const snapshot = props.snapshot
+  const activeBatchTask = props.sourceSyncTasks.find((task) => task.active && task.kind === 'all') ?? null
+  const activeSingleTasks = props.sourceSyncTasks.filter((task) => task.active && task.kind === 'single')
+  const hiddenSingleTask = activeSingleTasks.find((task) => !props.currentSources.some((source) => source.id === task.sourceId)) ?? null
+  const overviewTask = activeBatchTask ?? hiddenSingleTask
+  const showSyncInOverview = Boolean(overviewTask)
+  const anyActiveSync = props.sourceSyncTasks.some((task) => task.active)
+  const syncOriginLabel = (origin: SourceSyncTask['origin']) => origin === 'clashVerge' ? 'Clash Verge' : origin === 'auto' ? '自动刷新' : '手动刷新'
   const [autoRoutesPanelOpen, setAutoRoutesPanelOpen] = useState(false)
   const [autoGroupNamingOpen, setAutoGroupNamingOpen] = useState(false)
   const [proxyAvailability, setProxyAvailability] = useState<'checking' | 'available' | 'unavailable'>('checking')
@@ -1883,19 +2005,25 @@ function SourcePage(props: {
   }
 
   return <>
-    <div className="source-overview">
+    <div className={'source-overview' + (showSyncInOverview ? ' source-overview-syncing' : '')}>
       <div className="source-overview-details">
         <strong>{props.enabledSources}<small> / {props.currentSources.length} 个来源已启用</small></strong>
         <span className="source-overview-divider" />
         <strong>{props.totalNodes}<small> 个可用节点</small></strong>
         <span className="source-overview-divider" />
-        <span className={'sync-note ' + (/失败|错误|fail/i.test(snapshot?.syncStatus ?? '') ? 'error' : '')}>{snapshot?.syncStatus || '等待手动刷新'}</span>
+        <span className={'sync-note ' + (/失败|错误|fail/i.test(snapshot?.syncStatus ?? '') ? 'error' : '')}>{overviewTask ? `${syncOriginLabel(overviewTask.origin)} 正在刷新订阅` : snapshot?.syncStatus || '等待手动刷新'}</span>
         <span className="source-overview-time">{snapshot?.lastSync ? '最近更新 ' + shortTime(snapshot.lastSync) : '尚未刷新'}</span>
       </div>
-      <div className="source-page-actions">
-        <button className="button secondary" disabled={props.busy || !snapshot?.sources.some((source) => source.enabled)} onClick={() => props.onRefreshAll('direct')}>⟳ 更新节点（直连）</button>
-        <button className="button secondary" disabled={props.busy || !snapshot?.sources.some((source) => source.enabled) || proxyAvailability !== 'available'} title={proxyAvailability === 'checking' ? '正在检测设置中的代理连接。' : proxyAvailability === 'unavailable' ? '代理当前不可连接，请检查设置中的代理地址和代理程序。' : '使用设置中的代理刷新所有已启用订阅。'} onClick={() => props.onRefreshAll('proxy')}>⟳ 更新节点（代理）</button>
-        <button className="button primary" onClick={() => props.onNewSource(freshSource())}>＋ 添加来源</button>
+      <div className={'source-page-actions' + (showSyncInOverview ? ' source-page-actions-syncing' : '')}>
+        {overviewTask ? <div className="source-sync-progress" role="status" aria-live="polite">
+          <div className="source-sync-progress-copy"><strong>{syncOriginLabel(overviewTask.origin)}进度 {overviewTask.completed}/{overviewTask.total}</strong><small>{overviewTask.cancelRequested ? '正在停止刷新…' : [overviewTask.sourceName, overviewTask.phase].filter(Boolean).join(' · ') || '正在准备刷新'}</small></div>
+          <progress value={overviewTask.completed} max={Math.max(1, overviewTask.total)} />
+          <button className="button danger small" type="button" disabled={overviewTask.cancelRequested || overviewTask.pending} onClick={() => props.stopSourceSync(overviewTask.taskId)}>{overviewTask.pending ? '正在准备…' : overviewTask.cancelRequested ? '正在停止…' : '停止刷新'}</button>
+        </div> : <>
+          <button className="button secondary" disabled={props.busy || anyActiveSync || !snapshot?.sources.some((source) => source.enabled)} onClick={() => props.onRefreshAll('direct')}>⟳ 更新节点（直连）</button>
+          <button className="button secondary" disabled={props.busy || anyActiveSync || !snapshot?.sources.some((source) => source.enabled) || proxyAvailability !== 'available'} title={proxyAvailability === 'checking' ? '正在检测设置中的代理连接。' : proxyAvailability === 'unavailable' ? '代理当前不可连接，请检查设置中的代理地址和代理程序。' : '使用设置中的代理刷新所有已启用订阅。'} onClick={() => props.onRefreshAll('proxy')}>⟳ 更新节点（代理）</button>
+        </>}
+        <button className="button primary" disabled={props.busy} onClick={() => props.onNewSource(freshSource())}>＋ 添加订阅</button>
       </div>
     </div>
     {props.newSource && <section className="panel new-source-panel">
@@ -1913,6 +2041,11 @@ function SourcePage(props: {
         const dirty = draft.name !== source.name || draft.prefix !== source.prefix || draft.regionHint !== source.regionHint || draft.url !== source.url || draft.enabled !== source.enabled || draft.includePrefix !== source.includePrefix || draft.includeFlag !== source.includeFlag || draft.includeCountry !== source.includeCountry || draft.includeOriginalName !== source.includeOriginalName
         const providerNodes = sortProxyNodes((snapshot?.nodes ?? []).filter((node) => node.sourceId === source.id))
         const sourceGroups = props.generatedGroups.filter((group) => group.sourceId === source.id && group.country !== null)
+        const sourceTasks = props.sourceSyncTasks
+          .filter((task) => task.active && task.kind !== 'all' && task.sourceId === source.id)
+          .sort((left, right) => Number(right.kind === 'single') - Number(left.kind === 'single'))
+        const activeSourceTask = sourceTasks[0]
+        const manualSourceTask = sourceTasks.find((task) => task.kind === 'single')
         return <article
           className={'panel source-card' + (source.enabled ? '' : ' source-disabled') + (draggingSourceId === source.id ? ' is-dragging' : '') + (dropTargetSourceId === source.id ? ' is-drop-target' : '')}
           key={source.id}
@@ -1941,11 +2074,19 @@ function SourcePage(props: {
             <div className="source-card-head-actions">
               {dirty && <span className="source-dirty-badge">未保存修改</span>}
               <label className="switch-label"><input type="checkbox" checked={draft.enabled} onChange={(event) => props.updateDraft(source.id, 'enabled', event.target.checked)} /><span className="switch" />{draft.enabled ? '已启用' : '已暂停'}</label>
-              <button className="button secondary small source-refresh-button" disabled={props.busy || !draft.url.trim()} onClick={() => props.refreshSource(draft)}>{props.refreshingSourceId === source.id ? '刷新中…' : '⟳ 刷新订阅'}</button>
+              {activeSourceTask ? <>
+                <button className="button secondary small source-refresh-button" type="button" disabled>{activeSourceTask.cancelRequested ? '正在停止…' : activeSourceTask.phase === '等待刷新' ? '等待刷新…' : '刷新中…'}</button>
+                {manualSourceTask && <button className="button danger small source-refresh-button" type="button" disabled={manualSourceTask.cancelRequested || manualSourceTask.pending} onClick={() => props.stopSourceSync(manualSourceTask.taskId)}>{manualSourceTask.pending ? '正在准备…' : manualSourceTask.cancelRequested ? '正在停止…' : '停止刷新'}</button>}
+              </> : <button className="button secondary small source-refresh-button" disabled={props.busy || !draft.url.trim()} onClick={() => props.refreshSource(draft)}>⟳ 刷新订阅</button>}
               <button className="button secondary small source-collapse-button" type="button" aria-expanded={!collapsed} aria-controls={`source-extra-${source.id}`} onClick={() => props.toggleSource(source.id)}>{collapsed ? '展开' : '收起'}<i className={'source-collapse-chevron ' + (collapsed ? 'down' : 'up')} aria-hidden="true" /></button>
             </div>
           </div>
           <SourceSubscriptionInfo info={source.subscriptionInfo} />
+          {sourceTasks.map((task) => <div className={'source-sync-card-status' + (task.origin === 'clashVerge' ? ' external-sync' : '')} key={task.id} role="status" aria-live="polite">
+            <span>{syncOriginLabel(task.origin)} · {task.sourceName || source.name}</span>
+            <span>{task.cancelRequested ? '正在停止刷新…' : task.phase}</span>
+            {task.phase === '等待刷新' ? <progress value={0} max={Math.max(1, task.total)} /> : <progress value={task.completed >= task.total ? task.total : undefined} max={Math.max(1, task.total)} />}
+          </div>)}
           {source.lastError && <div className="inline-error">上次更新失败：{source.lastError}</div>}
           <div className="source-card-content" id={`source-extra-${source.id}`} hidden={collapsed}>
             {!collapsed && <>
@@ -2038,7 +2179,7 @@ function ProfilePage(props: { snapshot: AppSnapshot | null; copyProfile: () => v
       <div className="profile-steps">
         <article><b>1</b><div><strong>复制地址</strong><span>复制上方本机地址。</span></div></article>
         <article><b>2</b><div><strong>添加远程配置</strong><span>在 Clash Verge 粘贴并保存地址。</span></div></article>
-        <article><b>3</b><div><strong>刷新并启用</strong><span>刷新配置后，在 Clash Verge 启用。</span></div></article>
+        <article><b>3</b><div><strong>刷新并启用</strong><span>刷新时同步已启用订阅，再返回最新配置。</span></div></article>
       </div>
       <div className="profile-options">
         <label className="field-label">配置名称<input value={profileName} maxLength={64} onChange={(event) => setProfileName(event.target.value)} placeholder="Clash 管家" /></label>
@@ -3112,6 +3253,7 @@ function providerFormatLabel(value: string) {
 
 function UsagePage(props: {
   snapshot: AppSnapshot | null
+  trafficStatus: string
   fromDate: string
   toDate: string
   setFromDate: (value: string) => void
@@ -3124,6 +3266,7 @@ function UsagePage(props: {
   usageTab: string
   setUsageTab: (value: string) => void
   query: () => void
+  copySite: (site: string) => void
   clearHistory: () => void
   openSettings: () => void
   busy: boolean
@@ -3132,7 +3275,7 @@ function UsagePage(props: {
   const total = (usage?.upload ?? 0) + (usage?.download ?? 0)
   const dates = [props.fromDate, props.toDate].map((value) => new Date(value).getTime())
   const days = Number.isFinite(dates[0]) && Number.isFinite(dates[1]) ? Math.max(1, Math.round((dates[1] - dates[0]) / 86400000) + 1) : 1
-  const status = props.snapshot?.trafficStatus ?? '等待连接 Mihomo'
+  const status = props.trafficStatus || props.snapshot?.trafficStatus || '等待连接 Mihomo'
   const connected = status.startsWith('已连接')
   const hasHistory = total > 0 || (usage?.byDay ?? []).some((day) => day.upload + day.download > 0)
   const paused = status.includes('暂停')
@@ -3142,7 +3285,7 @@ function UsagePage(props: {
   return <>
     <div className="usage-header-row">
       <div><span className="section-kicker">TRAFFIC OVERVIEW</span><h2>流量概览</h2></div>
-      <div className="usage-header-actions"><span className={'usage-connection ' + (connected ? 'connected' : paused ? 'paused' : 'disconnected')}><i />{statusText}</span><button className="button danger small" type="button" disabled={props.busy} onClick={props.clearHistory}>清空统计</button></div>
+      <div className="usage-header-actions"><span className={'usage-connection ' + (connected ? 'connected' : paused ? 'paused' : 'disconnected')}><i />{statusText}</span><button className="button secondary small" type="button" disabled={props.busy || !props.fromDate || !props.toDate} onClick={props.query}>{props.busy ? '刷新中…' : '⟳ 刷新数据'}</button><button className="button danger small" type="button" disabled={props.busy} onClick={props.clearHistory}>清空统计</button></div>
     </div>
     <div className="usage-range-toolbar">
       <strong>统计范围</strong>
@@ -3163,10 +3306,10 @@ function UsagePage(props: {
       <button className="button secondary" onClick={props.openSettings}>打开设置</button>
     </section>}
     <div className="usage-metrics">
-      <SummaryMetric label="总流量" value={metricsTotal} detail={metricsDetail} icon="◉" />
-      <SummaryMetric label="下载" value={!connected && !hasHistory ? '—' : formatBytes(usage?.download ?? 0)} detail="Mihomo 下行累计" icon="↓" />
-      <SummaryMetric label="上传" value={!connected && !hasHistory ? '—' : formatBytes(usage?.upload ?? 0)} detail="Mihomo 上行累计" icon="↑" />
-      <SummaryMetric label="日均流量" value={!connected && !hasHistory ? '—' : formatBytes(Math.round(total / days))} detail="该范围总量 ÷ 自然日" icon="◷" />
+      <SummaryMetric label="总流量" value={metricsTotal} detail={metricsDetail} icon="total" />
+      <SummaryMetric label="下载" value={!connected && !hasHistory ? '—' : formatBytes(usage?.download ?? 0)} detail="Mihomo 下行累计" icon="download" />
+      <SummaryMetric label="上传" value={!connected && !hasHistory ? '—' : formatBytes(usage?.upload ?? 0)} detail="Mihomo 上行累计" icon="upload" />
+      <SummaryMetric label="日均流量" value={!connected && !hasHistory ? '—' : formatBytes(Math.round(total / days))} detail="该范围总量 ÷ 自然日" icon="average" />
     </div>
     <UsageTrend days={usage?.byDay ?? []} connected={connected} hasHistory={hasHistory} />
     <section className="panel usage-panel">
@@ -3178,59 +3321,60 @@ function UsagePage(props: {
       {props.usageTab === 'unmatched' ? <>
         <div className="usage-unmatched-toolbar"><span>记录落到 MATCH 兜底的连接，按当前日期范围筛选。</span><div><b>{props.unmatchedConnections.length} 条</b><button className="button secondary small" type="button" disabled={props.busy} onClick={props.query}>{props.busy ? '刷新中…' : '刷新记录'}</button><button className="button secondary small" type="button" disabled={props.busy || props.unmatchedConnections.length === 0} onClick={props.exportUnmatched}>导出 CSV</button></div></div>
         <UnmatchedConnectionTable records={props.unmatchedConnections} />
-      </> : <UsageTable rows={usage ? rowsFor(usage, props.usageTab) : []} mode={props.usageTab} />}
+      </> : <UsageTable rows={usage ? rowsFor(usage, props.usageTab) : []} mode={props.usageTab} copySite={props.copySite} />}
     </section>
     <div className="usage-footnote">流量分类按秒采样，短连接可能漏记；未命中记录也来自每秒活跃连接快照，连接过短时可能无法捕获。未命中明细记录在本机，可导出 CSV。</div>
   </>
 }
 
 function UsageTrend(props: { days: UsageSummary['byDay']; connected: boolean; hasHistory: boolean }) {
-  const width = 1000
-  const height = 210
-  const left = 86
-  const right = 16
-  const top = 20
-  const bottom = 34
-  const chartHeight = height - top - bottom
-  const chartWidth = width - left - right
-  const max = Math.max(0, ...props.days.map((day) => day.upload + day.download))
-  const barWidth = Math.max(2, Math.min(18, chartWidth / Math.max(1, props.days.length) * 0.58))
+  const max = Math.max(0, ...props.days.map((day) => Math.max(day.upload, day.download)))
   const hasBars = max > 0
   const labelIndexes = Array.from(new Set([0, Math.floor((props.days.length - 1) / 3), Math.floor((props.days.length - 1) * 2 / 3), props.days.length - 1])).filter((index) => index >= 0)
+  const labelDates = labelIndexes.map((index) => props.days[index]?.date).filter((date): date is string => Boolean(date))
   return <section className="panel usage-trend-panel">
-    <div className="usage-trend-head"><div><h2>每日流量趋势</h2><p>{props.days.length ? props.days.length + ' 个自然日' : '当前范围'}</p></div><div className="trend-legend"><span><i className="download" />下载</span><span><i className="upload" />上传</span></div></div>
+    <div className="usage-trend-head"><div className="usage-trend-title"><span className="usage-trend-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5v14h16" /><path d="m7 14 3.5-3.5 3 2.5L19 7" /><path d="M16 7h3v3" /></svg></span><div><h2>每日流量趋势</h2><p>{props.days.length ? props.days.length + ' 个自然日' : '当前范围'}</p></div></div><div className="trend-legend"><span><i className="download" />下载</span><span><i className="upload" />上传</span></div></div>
     {hasBars
-      ? <svg className="usage-trend-chart" viewBox={'0 0 ' + width + ' ' + height} role="img" aria-label="每日上传和下载流量柱状图" preserveAspectRatio="none">
-          {[0, 1, 2, 3].map((line) => {
-            const y = top + chartHeight * line / 3
-            const label = formatAxisBytes(max * (1 - line / 3))
-            return <g key={line}><line x1={left} x2={width - right} y1={y} y2={y} className="trend-grid-line" /><text x={left - 8} y={y + 3} textAnchor="end" className="trend-axis-label">{label}</text></g>
-          })}
-          {props.days.map((day, index) => {
-            const slot = chartWidth / Math.max(1, props.days.length)
-            const x = left + slot * index + (slot - barWidth) / 2
-            const uploadHeight = day.upload / max * chartHeight
-            const downloadHeight = day.download / max * chartHeight
-            const yDownload = top + chartHeight - downloadHeight
-            const yUpload = yDownload - uploadHeight
-            return <g key={day.date}>
-              <rect x={x} y={yDownload} width={barWidth} height={Math.max(0, downloadHeight)} rx="2" className="trend-download"><title>{day.date} 下载 {formatBytes(day.download)}</title></rect>
-              <rect x={x} y={yUpload} width={barWidth} height={Math.max(0, uploadHeight)} rx="2" className="trend-upload"><title>{day.date} 上传 {formatBytes(day.upload)}</title></rect>
-            </g>
-          })}
-          {labelIndexes.map((index) => {
-            const day = props.days[index]
-            if (!day) return null
-            const slot = chartWidth / Math.max(1, props.days.length)
-            const x = left + slot * index + slot / 2
-            return <text key={day.date} x={x} y={height - 9} textAnchor="middle" className="trend-axis-label">{day.date.slice(5)}</text>
-          })}
-        </svg>
+      ? <div className="usage-trend-chart" role="img" aria-label="每日下载和上传并列柱状图" onMouseDown={(event) => event.preventDefault()}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={props.days} accessibilityLayer={false} margin={{ top: 20, right: 16, left: 0, bottom: 0 }} barGap={3} barCategoryGap="22%">
+            <CartesianGrid vertical={false} stroke="#dfe6ef" />
+            <XAxis dataKey="date" ticks={labelDates} tickFormatter={(date: string) => date.slice(5)} interval={0} height={34} axisLine={false} tickLine={false} tick={{ fill: '#586c86', fontFamily: "'DM Sans', 'Microsoft YaHei UI', sans-serif", fontSize: 14 }} />
+            <YAxis width={86} domain={[0, max]} ticks={[0, max / 3, max * 2 / 3, max]} tickFormatter={formatAxisBytes} axisLine={false} tickLine={false} tick={{ fill: '#586c86', fontFamily: "'DM Sans', 'Microsoft YaHei UI', sans-serif", fontSize: 14 }} />
+            <Tooltip shared={false} cursor={false} trigger="hover" isAnimationActive={false} content={({ active, payload, label }) => {
+              const item = payload?.[0]
+              if (!active || !item) return null
+              const direction = item.dataKey === 'upload' ? '上传' : '下载'
+              const value = typeof item.value === 'number' ? item.value : Number(item.value ?? 0)
+              return <div className={'usage-trend-tooltip ' + (direction === '上传' ? 'upload' : 'download')}><i aria-hidden="true" /><span><b>{String(label ?? '')}</b><small>{direction} · {formatBytes(value)}</small></span></div>
+            }} />
+            <Bar className="trend-download" dataKey="download" name="下载" fill="#6394ef" maxBarSize={14} radius={[2, 2, 0, 0]} isAnimationActive={false} />
+            <Bar className="trend-upload" dataKey="upload" name="上传" fill="#53bd93" maxBarSize={14} radius={[2, 2, 0, 0]} isAnimationActive={false} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
       : <div className="trend-empty"><span>⌁</span><strong>{props.hasHistory ? '这个范围没有可绘制的日汇总' : props.connected ? '这个范围还没有流量记录' : '连接 Mihomo 后显示每日趋势'}</strong></div>}
   </section>
 }
 
-function UsageTable(props: { rows: UsageRow[]; mode: string }) {
+function UsageTable(props: { rows: UsageRow[]; mode: string; copySite: (site: string) => void }) {
+  const [siteMenu, setSiteMenu] = useState<{ x: number; y: number; site: string; address: string } | null>(null)
+  const siteMenuRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!siteMenu) return
+    const dismissOutside = (event: PointerEvent) => {
+      if (!siteMenuRef.current?.contains(event.target as Node)) setSiteMenu(null)
+    }
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSiteMenu(null)
+    }
+    document.addEventListener('pointerdown', dismissOutside)
+    document.addEventListener('keydown', dismissOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', dismissOutside)
+      document.removeEventListener('keydown', dismissOnEscape)
+    }
+  }, [siteMenu])
   if (props.rows.length === 0) return <div className="usage-empty"><div>▥</div><strong>这个时期还没有可分类记录</strong><span>连接 Mihomo 并产生流量后显示。</span></div>
   function title(row: UsageRow) {
     if (props.mode === 'node') return row.node
@@ -3240,6 +3384,14 @@ function UsageTable(props: { rows: UsageRow[]; mode: string }) {
     return row.site
   }
   const max = Math.max(1, props.rows[0].upload + props.rows[0].download)
+  function openSiteMenu(event: React.MouseEvent<HTMLElement>, value: string) {
+    const site = value.trim()
+    if (!site || /^(未知|未知站点|—|-)$/.test(site)) return
+    event.preventDefault()
+    event.stopPropagation()
+    const address = /^[a-z][a-z\d+.-]*:\/\//i.test(site) ? site : `https://${site}`
+    setSiteMenu({ x: Math.max(8, Math.min(event.clientX, window.innerWidth - 280)), y: Math.max(8, Math.min(event.clientY, window.innerHeight - 90)), site, address })
+  }
   return <div className="usage-table">
     <div className="usage-table-head"><span>#</span><span>{props.mode === 'detail' ? '站点 · 服务商 · 节点 · 策略组 · 命中规则' : props.mode === 'site' ? '站点 / 域名' : props.mode === 'node' ? '节点' : props.mode === 'provider' ? '服务商' : props.mode === 'group' ? '策略组' : '命中规则'}</span><span>上传</span><span>下载</span><span>合计</span></div>
     {props.rows.map((row, index) => {
@@ -3247,10 +3399,13 @@ function UsageTable(props: { rows: UsageRow[]; mode: string }) {
       const width = Math.max(2, total / max * 100)
       return <div className="usage-table-row" key={row.key + '-' + String(index)}>
         <span className="rank">{String(index + 1).padStart(2, '0')}</span>
-        <span className="usage-item"><strong>{title(row) || '未知'}</strong>{props.mode === 'detail' && <small>{[row.provider, row.node, row.group, row.rule].filter(Boolean).join(' · ') || '未知来源 · 未识别节点 · 未识别策略组'}</small>}<i style={{ width: String(width) + '%' }} /></span>
+        <span className={'usage-item' + ((props.mode === 'detail' || props.mode === 'site') && row.site ? ' usage-item-site-menu' : '')} onContextMenu={(event) => { if (props.mode === 'detail' || props.mode === 'site') openSiteMenu(event, row.site) }}><strong>{title(row) || '未知'}</strong>{props.mode === 'detail' && <small>{[row.provider, row.node, row.group, row.rule].filter(Boolean).join(' · ') || '未知来源 · 未识别节点 · 未识别策略组'}</small>}<i style={{ width: String(width) + '%' }} /></span>
         <span>{formatBytes(row.upload)}</span><span>{formatBytes(row.download)}</span><b>{formatBytes(total)}</b>
       </div>
     })}
+    {siteMenu && createPortal(<div className="usage-site-context-menu-layer" role="presentation"><div ref={siteMenuRef} className="usage-site-context-menu" role="menu" aria-label={`复制 ${siteMenu.site} 的网站链接`} style={{ left: siteMenu.x, top: siteMenu.y }} onPointerDown={(event) => event.stopPropagation()}>
+      <button type="button" role="menuitem" onClick={() => { props.copySite(siteMenu.address); setSiteMenu(null) }}><span>复制网站链接</span><small>{siteMenu.address}</small></button>
+    </div></div>, document.body)}
   </div>
 }
 
@@ -3298,6 +3453,7 @@ function SettingsPage(props: {
     || settings.controllerSecret !== savedSettings?.controllerSecret
     || settings.collectEnabled !== savedSettings?.collectEnabled
     || settings.autoUpdateEnabled !== savedSettings?.autoUpdateEnabled
+    || settings.syncSubscriptionsOnProfileRefresh !== savedSettings?.syncSubscriptionsOnProfileRefresh
     || settings.useSubscriptionProxy !== savedSettings?.useSubscriptionProxy
     || settings.updateMinutes !== savedSettings?.updateMinutes
     || settings.profilePort !== savedSettings?.profilePort
@@ -3340,6 +3496,11 @@ function SettingsPage(props: {
         <input type="checkbox" checked={settings.useSubscriptionProxy} onChange={(event) => update('useSubscriptionProxy', event.target.checked)} />
         <span className="switch" />
         <span className="auto-update-copy"><b>走代理刷新订阅</b><small>{!settings.useSubscriptionProxy ? '刷新订阅时直接连接订阅服务器。' : proxyForm.protocol === 'direct' ? '上方代理协议为直连；刷新请求会直接连接订阅服务器。' : '刷新订阅时使用上方代理配置。'}</small></span>
+      </label>
+      <label className="auto-update-row">
+        <input type="checkbox" checked={settings.syncSubscriptionsOnProfileRefresh} onChange={(event) => update('syncSubscriptionsOnProfileRefresh', event.target.checked)} />
+        <span className="switch" />
+        <span className="auto-update-copy"><b>Clash Verge 刷新时同步订阅</b><small>{settings.syncSubscriptionsOnProfileRefresh ? '刷新配置前先更新所有已启用订阅，再返回最新 profile。' : '关闭后直接返回本机现有 profile，不请求订阅服务器。'}</small></span>
       </label>
       <label className="auto-update-row">
         <input type="checkbox" checked={settings.autoUpdateEnabled} onChange={(event) => update('autoUpdateEnabled', event.target.checked)} />

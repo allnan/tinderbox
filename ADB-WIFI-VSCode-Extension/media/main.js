@@ -3,28 +3,23 @@
 
   const vscode = acquireVsCodeApi();
   const app = document.getElementById("app");
+  const appIcon = app.dataset.iconSrc || "";
   const $ = function (id) { return document.getElementById(id); };
 
   const state = { value: null };
   let pairTab = "qr";
   let activeStack = "pair";
   let toastTimer = null;
-  let expiryTimer = null;
+  let countdownTimer = null;
   let qrAutoAttempted = false;
   let qrRenewAttempted = false;
+  let panelVisible = true;
   let deviceListSignature = null;
 
   app.innerHTML = [
     '<header class="app-header">',
     '  <div class="brand">',
-    '    <span class="brand-mark" aria-hidden="true">',
-    '      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">',
-    '        <path d="M2 8.82a15 15 0 0 1 20 0"></path>',
-    '        <path d="M5 12.55a11 11 0 0 1 14 0"></path>',
-    '        <path d="M8.5 16.05a6 6 0 0 1 7 0"></path>',
-    '        <line x1="12" y1="20" x2="12.01" y2="20"></line>',
-    '      </svg>',
-    '    </span>',
+    '    <img class="brand-mark" src="' + appIcon + '" alt="" aria-hidden="true">',
     '    <div class="brand-copy">',
     '      <h1>ADB WIFI 无线调试</h1>',
     '      <div class="summary-line"><span class="dot" id="summary-dot"></span><span id="summary-text">正在读取状态…</span></div>',
@@ -74,12 +69,10 @@
     '        </div>',
     '        <div class="pair-view" id="pair-qr-view">',
     '          <p class="pane-hint">手机「无线调试 → 使用二维码配对设备」，然后扫描下方二维码。</p>',
-    '          <div class="qr-box" id="qr-box"><div class="qr-empty">点击下方「生成二维码」，再用手机扫码。</div></div>',
+    '          <div class="qr-box" id="qr-box"><div class="qr-empty">正在生成二维码…</div></div>',
     '          <div class="qr-actions">',
-    '            <button type="button" class="btn btn-primary" id="qr-generate">生成二维码</button>',
-    '            <button type="button" class="btn btn-ghost" id="qr-cancel" hidden>取消</button>',
+    '            <button type="button" class="btn btn-primary" id="qr-generate"><span id="qr-generate-label">生成二维码</span><span class="qr-countdown" id="qr-generate-count" hidden></span></button>',
     '          </div>',
-    '          <div class="qr-expiry" id="qr-expiry" hidden></div>',
     '          <div class="status" id="qr-status" aria-live="polite"></div>',
     '        </div>',
     '        <div class="pair-view" id="pair-code-view" hidden>',
@@ -179,8 +172,8 @@
     qrView: $("pair-qr-view"),
     qrBox: $("qr-box"),
     qrGenerate: $("qr-generate"),
-    qrCancel: $("qr-cancel"),
-    qrExpiry: $("qr-expiry"),
+    qrGenerateLabel: $("qr-generate-label"),
+    qrGenerateCount: $("qr-generate-count"),
     qrStatus: $("qr-status"),
     pairEndpointHint: $("pair-endpoint-hint"),
     pairEndpointError: $("pair-endpoint-error"),
@@ -518,11 +511,6 @@
     qrRenewAttempted = false;
     vscode.postMessage({ type: "generate-qr" });
   });
-  els.qrCancel.addEventListener("click", function () {
-    qrAutoAttempted = true;
-    qrRenewAttempted = true;
-    vscode.postMessage({ type: "cancel-qr" });
-  });
 
   els.pairCode.addEventListener("input", function () {
     els.pairCode.value = els.pairCode.value.replace(/\D/g, "").slice(0, 6);
@@ -578,18 +566,28 @@
     renderFooter(current);
     renderBusy(current);
     applyTab();
-    updateExpiry();
+    updateQrCountdown();
     maybeGenerateQr();
+  }
+
+  /** 二维码区域当前是否真正可见：面板可见，且「配对新设备」停留在二维码页。 */
+  function qrDisplayed() {
+    return panelVisible && activeStack === "pair" && pairTab === "qr";
   }
 
   function maybeGenerateQr() {
     const current = state.value;
     if (current === null) return;
+    if (!qrDisplayed()) {
+      qrAutoAttempted = false;
+      qrRenewAttempted = false;
+      return;
+    }
     if (current.qr.active) {
       qrAutoAttempted = true;
       return;
     }
-    if (activeStack !== "pair" || pairTab !== "qr" || !current.adb.found || current.busy || qrAutoAttempted) return;
+    if (!current.adb.found || current.busy || qrAutoAttempted) return;
     qrAutoAttempted = true;
     vscode.postMessage({ type: "generate-qr" });
   }
@@ -643,23 +641,22 @@
         els.qrBox.setAttribute("data-qr", qr.svg);
         els.qrBox.innerHTML = qr.svg;
       }
-      els.qrGenerate.textContent = "重新生成";
-      els.qrCancel.hidden = false;
+      els.qrGenerateLabel.textContent = "重新生成";
+      els.qrGenerateCount.hidden = false;
     } else {
       els.qrBox.classList.add("empty");
       els.qrBox.removeAttribute("data-qr");
-      const generating = current.qrStatus && current.qrStatus.level === "busy";
-      els.qrBox.innerHTML = generating
-        ? '<div class="qr-empty">正在生成二维码…</div>'
-        : '<div class="qr-empty">点击下方「生成二维码」，再用手机扫码。</div>';
-      els.qrGenerate.textContent = "生成二维码";
-      els.qrCancel.hidden = true;
-      els.qrExpiry.hidden = true;
+      const failed = current.qrStatus && current.qrStatus.level === "error";
+      els.qrBox.innerHTML = failed
+        ? '<div class="qr-empty">二维码暂不可用</div>'
+        : '<div class="qr-empty">正在生成二维码…</div>';
+      els.qrGenerateLabel.textContent = "生成二维码";
+      els.qrGenerateCount.hidden = true;
     }
+    updateQrCountdown();
     if (
       !qr.active &&
-      activeStack === "pair" &&
-      pairTab === "qr" &&
+      qrDisplayed() &&
       !current.busy &&
       current.adb &&
       current.adb.found &&
@@ -670,30 +667,20 @@
     ) {
       qrRenewAttempted = true;
       setTimeout(function () {
-        vscode.postMessage({ type: "generate-qr" });
+        if (qrDisplayed()) vscode.postMessage({ type: "generate-qr" });
       }, 350);
     }
     renderStatus(els.qrStatus, current.qrStatus);
   }
 
-  function updateExpiry() {
+  /** 把剩余有效期合并进「重新生成」按钮，固定宽度避免数字跳动。 */
+  function updateQrCountdown() {
     const current = state.value;
-    if (current === null || !current.qr.active || typeof current.qr.expiresAt !== "number") {
-      els.qrExpiry.hidden = true;
-      return;
-    }
-    const remaining = current.qr.expiresAt - Date.now();
-    els.qrExpiry.hidden = false;
-    if (remaining <= 0) {
-      els.qrExpiry.textContent = "二维码已过期，请重新生成。";
-      els.qrExpiry.classList.add("expired");
-      return;
-    }
-    els.qrExpiry.classList.remove("expired");
-    const total = Math.ceil(remaining / 1000);
+    if (current === null || !current.qr.active || typeof current.qr.expiresAt !== "number") return;
+    const total = Math.max(0, Math.ceil((current.qr.expiresAt - Date.now()) / 1000));
     const minutes = String(Math.floor(total / 60)).padStart(2, "0");
     const seconds = String(total % 60).padStart(2, "0");
-    els.qrExpiry.textContent = "有效期剩余 " + minutes + ":" + seconds;
+    els.qrGenerateCount.textContent = "· " + minutes + ":" + seconds;
   }
 
   function renderDevices(current) {
@@ -1006,7 +993,7 @@
 
   function renderBusy(current) {
     const busy = current.busy === true;
-    [els.qrGenerate, els.qrCancel, els.pairSubmit, els.connectSubmit].forEach(function (button) {
+    [els.qrGenerate, els.pairSubmit, els.connectSubmit].forEach(function (button) {
       button.disabled = busy;
       button.setAttribute("aria-busy", busy ? "true" : "false");
     });
@@ -1039,6 +1026,14 @@
     if (message.type === "state") {
       state.value = message.state;
       render();
+    } else if (message.type === "visibility") {
+      // 隐藏只暂停自动生成，已经生成的二维码保留到自然过期。
+      const visible = message.visible !== false;
+      if (visible === panelVisible) return;
+      panelVisible = visible;
+      qrAutoAttempted = false;
+      qrRenewAttempted = false;
+      if (visible) maybeGenerateQr();
     } else if (message.type === "toast") {
       toast(message.level || "info", message.text);
     } else if (message.type === "focus") {
@@ -1052,6 +1047,7 @@
         els.pairSection.scrollIntoView({ block: "start", behavior: "smooth" });
         if (pairTab === "code") pairEndpoint.focus();
         else els.qrGenerate.focus();
+        maybeGenerateQr();
       } else if (message.tab === "devices") {
         els.devicesSection.scrollIntoView({ block: "start", behavior: "smooth" });
       } else if (message.tab === "connect") {
@@ -1065,7 +1061,7 @@
 
   applyStack();
   applyTab();
-  if (expiryTimer === null) expiryTimer = setInterval(updateExpiry, 1000);
+  if (countdownTimer === null) countdownTimer = setInterval(updateQrCountdown, 1000);
   vscode.postMessage({ type: "ready" });
 })();
 

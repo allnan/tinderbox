@@ -896,13 +896,9 @@
   width: 56px;
   height: 56px;
   flex: 0 0 56px;
-  border-radius: 17px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: linear-gradient(145deg, var(--accent), var(--violet));
-  box-shadow: 0 14px 30px -16px color-mix(in srgb, var(--accent) 85%, transparent);
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 16px color-mix(in srgb, var(--accent) 35%, transparent));
 }
 
 .about-name {

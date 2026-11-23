@@ -29,6 +29,7 @@ execFileSync(process.execPath, [path.join(scriptDir, 'build.mjs')], {
 })
 
 await copyFile(path.join(projectRoot, 'src', 'app-icon.svg'), path.join(targetDist, 'assets', 'app-icon.svg'))
+await copyFile(path.join(projectRoot, 'icon.png'), path.join(targetDist, 'icon.png'))
 const fontTargetDir = path.join(targetDist, 'assets', 'fonts')
 await mkdir(fontTargetDir, { recursive: true })
 await copyFile(

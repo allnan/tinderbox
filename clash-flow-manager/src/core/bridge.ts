@@ -34,6 +34,20 @@ export type SourceSyncResult = {
   updatedAt: string
 }
 
+export type SourceSyncProgress = {
+  id: string
+  taskId: string
+  kind: 'all' | 'single' | 'source'
+  origin: 'manual' | 'clashVerge' | 'auto'
+  sourceId: string | null
+  active: boolean
+  cancelRequested: boolean
+  completed: number
+  total: number
+  sourceName: string
+  phase: string
+}
+
 export type ProxyNode = {
   id: string
   sourceId: string
@@ -71,6 +85,7 @@ export type PolicyConfig = {
   ruleProviders: Record<string, unknown>
   groups: PolicyGroup[]
   rules: PolicyRule[]
+  ruleGroupOrder?: string[]
   autoGroupSettings?: Record<string, AutoGroupSettings>
 }
 
@@ -129,6 +144,7 @@ export type AppSettings = {
   useSubscriptionProxy: boolean
   collectEnabled: boolean
   autoUpdateEnabled: boolean
+  syncSubscriptionsOnProfileRefresh: boolean
   updateMinutes: number
   profilePort: number
   mixedPort: number
@@ -192,22 +208,6 @@ export type RouteCheckResult = {
   message: string
 }
 
-export type LocalRouteCheckResult = {
-  host: string
-  policyId: string
-  policyName: string
-  status: 'matched' | 'uncertain' | 'unmatched'
-  rule: string
-  rulePayload: string
-  target: string
-  targetKind: string
-  groupKind: string
-  members: string[]
-  memberCount: number
-  membersComplete: boolean
-  message: string
-}
-
 export type AppSnapshot = {
   sources: Source[]
   nodes: ProxyNode[]
@@ -243,9 +243,12 @@ export const api = {
   saveSource: (source: Source) => invoke<Source[]>('source_save', { source }),
   reorderSources: (sourceIds: string[]) => invoke<Source[]>('source_reorder', { sourceIds }),
   deleteSource: (sourceId: string) => invoke<Source[]>('source_delete', { sourceId }),
-  syncSources: () => invoke<SourceSyncResult>('source_sync'),
-  syncSourcesWithMode: (mode: 'direct' | 'proxy') => invoke<SourceSyncResult>('source_sync_mode', { mode }),
-  syncSource: (sourceId: string) => invoke<SourceSyncResult>('source_sync_one', { sourceId }),
+  syncSources: (taskId: string) => invoke<SourceSyncResult>('source_sync', { taskId }),
+  syncSourcesWithMode: (mode: 'direct' | 'proxy', taskId: string) => invoke<SourceSyncResult>('source_sync_mode', { mode, taskId }),
+  syncSource: (sourceId: string, taskId: string) => invoke<SourceSyncResult>('source_sync_one', { sourceId, taskId }),
+  cancelSourceSync: (taskId: string) => invoke<void>('source_sync_cancel', { taskId }),
+  sourceSyncProgress: () => invoke<SourceSyncProgress[]>('source_sync_progress'),
+  trafficStatus: () => invoke<string>('traffic_status'),
   checkSubscriptionProxy: () => invoke<boolean>('subscription_proxy_check'),
   savePolicy: (policy: PolicyConfig, policyId: string | null, activate: boolean) => invoke<PolicySaveResult>('policy_save', { policy, policyId, activate }),
   activatePolicy: (id: string) => invoke<void>('policy_activate', { id }),
@@ -266,7 +269,6 @@ export const api = {
   restoreBackup: (backup: unknown) => invoke<void>('backup_restore', { backup }),
   controllerCheck: (url: string, secret: string) => invoke<string>('controller_check', { url, secret }),
   routeCheck: (url: string) => invoke<RouteCheckResult>('route_check', { url }),
-  localRouteCheck: (policyId: string, url: string) => invoke<LocalRouteCheckResult>('route_check_local', { policyId, url }),
   openData: () => invoke<void>('app_open_data_dir'),
   defaultRange: () => invoke<[string, string]>('usage_default_range'),
   minimizeWindow: () => invoke<void>('window_minimize'),
