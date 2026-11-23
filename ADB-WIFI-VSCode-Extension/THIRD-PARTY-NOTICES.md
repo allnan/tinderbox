@@ -29,3 +29,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Android robot head in `media/activitybar.svg`
+
+- Source: adapted from Google's flat Android robot artwork.
+- License: Creative Commons Attribution 3.0 (CC BY 3.0).
+- Attribution: "The Android robot is reproduced or modified from work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License."
+- Source and brand guidance: <https://developer.android.com/distribute/marketing-tools/brand-guidelines>
+- License text: <https://creativecommons.org/licenses/by/3.0/>

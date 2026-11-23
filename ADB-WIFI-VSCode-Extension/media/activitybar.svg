@@ -1,6 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="7" y="2.5" width="10" height="19" rx="2.2"/>
-  <path d="M10.5 5.2h3"/>
-  <circle cx="12" cy="18.2" r="0.4" fill="currentColor" stroke="none"/>
-  <path d="M4.2 8.5c1.1 1.1 1.1 5.9 0 7M19.8 8.5c-1.1 1.1-1.1 5.9 0 7"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Android head adapted from Google's flat Android robot artwork; attribution is in ../THIRD-PARTY-NOTICES.md. -->
+  <rect x="4.75" y="1.75" width="14.5" height="20.5" rx="2.7"/>
+  <path d="M8.9 7.5A4.6 4.6 0 0 1 15.1 7.5M10.03 9.2A2.6 2.6 0 0 1 13.97 9.2" stroke-width="1.05"/>
+  <circle cx="12" cy="10.9" r="0.7" fill="currentColor" stroke="none"/>
+  <path d="M9 15.26 8 13.9m7 1.36 1-1.36" stroke-width="1.05"/>
+  <path d="M7 18.7A5 4.3 0 0 1 17 18.7H7zM9.55 16.2a.45.45 0 1 0 .9 0a.45.45 0 1 0-.9 0zM13.55 16.2a.45.45 0 1 0 .9 0a.45.45 0 1 0-.9 0z" fill="currentColor" fill-rule="evenodd" stroke="none"/>
 </svg>
