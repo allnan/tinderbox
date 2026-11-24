@@ -66,7 +66,7 @@ npm run compile
 # VS Code 内按 F5 → Extension Development Host
 
 npm run package
-code --install-extension .\dist\adb-wifi-connect-0.1.0.vsix --force
+code --install-extension .\dist\adb-wifi-wireless-0.1.0.vsix --force
 code --list-extensions | Select-String adb
 ```
 

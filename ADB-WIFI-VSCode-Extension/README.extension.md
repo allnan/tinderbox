@@ -1,5 +1,7 @@
 # ADB WIFI 无线调试
 
+![ADB WIFI 无线调试主界面](docs/assets/marketplace-main.jpg)
+
 在 VS Code 里完成 Android 无线调试：手机扫码或输入配对码配对，然后在编辑器内连接、断开和管理设备，无需数据线。
 
 ## 功能

@@ -157,7 +157,7 @@ function registerCommands(context: vscode.ExtensionContext, output: vscode.Outpu
   register("adbWifi.refresh", async () => { await requireService().refreshNow(true); });
   register("adbWifi.redetect", async () => { await requireService().redetect(); });
   register("adbWifi.openSettings", async () => {
-    await vscode.commands.executeCommand("workbench.action.openSettings", "@ext:tinderbox.adb-wifi-connect");
+    await vscode.commands.executeCommand("workbench.action.openSettings", "@ext:tinderbox.adb-wifi-wireless");
   });
   register("adbWifi.openSidebar", async () => {
     sidebarProvider?.showPage();

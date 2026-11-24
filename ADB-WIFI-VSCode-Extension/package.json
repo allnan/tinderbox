@@ -1,5 +1,5 @@
 {
-  "name": "adb-wifi-connect",
+  "name": "adb-wifi-wireless",
   "displayName": "ADB WIFI 无线调试",
   "description": "在 VS Code 中管理 Android 无线调试：二维码/配对码配对、设备发现、无线连接、历史配对与 ADB 诊断。",
   "version": "0.1.0",
@@ -139,8 +139,8 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "test": "node --test out/test/parse.test.js",
-    "package": "node -e \"require('node:fs').mkdirSync('dist',{recursive:true})\" && vsce package --no-dependencies --readme-path README.extension.md --baseContentUrl https://github.com/allnan/tinderbox/blob/HEAD/ADB-WIFI-VSCode-Extension/ --baseImagesUrl https://github.com/allnan/tinderbox/raw/HEAD/ADB-WIFI-VSCode-Extension/ --out dist/",
-    "install:vsix": "code --install-extension dist/adb-wifi-connect-0.1.0.vsix --force"
+    "package": "node -e \"require('node:fs').mkdirSync('dist',{recursive:true})\" && vsce package --no-dependencies --readme-path README.extension.md --baseContentUrl https://github.com/allnan/tinderbox/blob/main/ADB-WIFI-VSCode-Extension/ --baseImagesUrl https://raw.githubusercontent.com/allnan/tinderbox/main/ADB-WIFI-VSCode-Extension/ --out dist/",
+    "install:vsix": "code --install-extension dist/adb-wifi-wireless-0.1.0.vsix --force"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

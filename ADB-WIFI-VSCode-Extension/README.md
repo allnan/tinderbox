@@ -27,7 +27,7 @@ node --test out/test/parse.test.js
 ## 打包
 
 ```powershell
-npm run package                 # 输出 dist/adb-wifi-connect-0.1.0.vsix
+npm run package                 # 输出 dist/adb-wifi-wireless-0.1.0.vsix
 ```
 
 打包使用 `--readme-path README.extension.md`：VSIX 里的扩展介绍页来自 `README.extension.md`，仓库首页继续使用本文件。VSIX 输出到 `dist/`，不提交。
