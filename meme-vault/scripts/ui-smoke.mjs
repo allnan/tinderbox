@@ -13,18 +13,12 @@ async function loadMockState() {
       return {
         categories: library.categories,
         groups: library.groups,
-        items: library.items,
+        items: library.items.map((item) => ({
+          ...item,
+          organizeNote: item.organizeNote ?? item.aiNote ?? "",
+        })),
         proposals: library.proposals ?? [],
         settings: {
-          ai: {
-            enabled: false,
-            baseUrl: "https://api.openai.com/v1",
-            model: "gpt-4o-mini",
-            vision: true,
-            batchSize: 12,
-            timeoutMs: 120000,
-            hasApiKey: false,
-          },
           copyMode: "image",
           cardSize: 150,
           autoBackup: true,
@@ -68,7 +62,7 @@ async function loadMockState() {
         usageCount: 2,
         lastUsedAt: at,
         origin: "import",
-        aiNote: "",
+        organizeNote: "",
       },
       {
         id: "item_b",
@@ -94,20 +88,11 @@ async function loadMockState() {
         usageCount: 0,
         lastUsedAt: null,
         origin: "import",
-        aiNote: "",
+        organizeNote: "",
       },
     ],
     proposals: [],
     settings: {
-      ai: {
-        enabled: false,
-        baseUrl: "https://api.openai.com/v1",
-        model: "gpt-4o-mini",
-        vision: true,
-        batchSize: 12,
-        timeoutMs: 120000,
-        hasApiKey: false,
-      },
       copyMode: "image",
       cardSize: 150,
       autoBackup: true,
@@ -228,10 +213,6 @@ const internals = {
           version: "0.1.0",
           platform: "windows",
           dataDir: "C:\\mock\\data",
-          aiPresets: [
-            { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini", vision: true },
-            { id: "custom", label: "自定义 OpenAI 兼容服务", baseUrl: "", model: "", vision: true },
-          ],
         };
       case "get_history":
         return history;
@@ -329,6 +310,22 @@ try {
     await waitFor(() => window.document.querySelector(".search input"), "打开全部表情相册");
     check("相册打开素材网格", window.document.querySelector(".toolbar h1")?.textContent?.includes("全部素材") ?? false);
 
+    check("界面无原生下拉", window.document.querySelectorAll("select").length === 0, `select ${window.document.querySelectorAll("select").length} 个`);
+    const sortTrigger = window.document.querySelector(".select-wrap");
+    sortTrigger?.click();
+    await waitFor(() => window.document.querySelector(".select-menu"), "排序下拉浮层");
+    const sortOptions = [...window.document.querySelectorAll(".select-menu .select-option")];
+    check("排序下拉渲染选项", sortOptions.length === 4, `选项 ${sortOptions.length} 个`);
+    sortOptions.find((node) => node.textContent?.includes("名称"))?.click();
+    await waitFor(() => window.document.querySelector(".select-wrap .select-value")?.textContent === "名称", "排序切换为名称");
+    check("排序下拉可切换", true);
+    window.document.querySelector(".select-wrap")?.click();
+    await waitFor(() => window.document.querySelector(".select-menu"), "重新打开排序下拉");
+    [...window.document.querySelectorAll(".select-menu .select-option")]
+      .find((node) => node.textContent?.includes("最新导入"))
+      ?.click();
+    await waitFor(() => window.document.querySelector(".select-wrap .select-value")?.textContent === "最新导入", "排序恢复最新导入");
+
     window.document.querySelector('.sticker-card .card-icon[aria-label="查看详情"]')?.click();
     await waitFor(() => window.document.querySelector(".detail-drawer"), "详情抽屉");
     check("打开素材详情", true);
@@ -371,16 +368,24 @@ try {
     clickByText("待整理");
     await waitFor(() => window.document.querySelector(".inbox-view"), "待整理页");
     check("切换到待整理区", true);
+    const inboxText = window.document.querySelector(".inbox-view")?.textContent ?? "";
+    check("待整理区无 AI 入口", !inboxText.includes("AI"), inboxText.includes("AI") ? "仍包含 AI 文案" : "");
 
     if (pendingProposal) {
       clickByText("整理建议");
       await waitFor(() => window.document.querySelector(".proposal-card"), "整理建议卡片");
       check("整理建议卡片渲染", true);
-      const select = window.document.querySelector(".entry-select");
-      if (select) {
-        select.value = state.categories[state.categories.length - 1].id;
-        select.dispatchEvent(new window.Event("change", { bubbles: true }));
-        await sleep(120);
+      const entrySelect = window.document.querySelector(".entry-select");
+      check("提案分类为自绘下拉", entrySelect?.tagName === "BUTTON");
+      if (entrySelect) {
+        entrySelect.click();
+        await waitFor(() => window.document.querySelector(".select-menu"), "提案分类下拉浮层");
+        const target = state.categories[state.categories.length - 1];
+        const option = [...window.document.querySelectorAll(".select-menu .select-option")].find((node) =>
+          node.textContent?.includes(target.name),
+        );
+        option?.click();
+        await waitFor(() => calls.some((call) => call.command === "update_proposal"), "提案换分类调用");
       }
       check("提案条目可换分类", calls.some((call) => call.command === "update_proposal"));
       clickByText("全部跳过");
@@ -412,7 +417,9 @@ try {
 
     clickByText("设置");
     await waitFor(() => window.document.querySelector(".settings-view"), "设置页");
-    check("设置页渲染", Boolean(window.document.querySelector(".settings-view")?.textContent?.includes("AI 整理")));
+    const settingsText = window.document.querySelector(".settings-view")?.textContent ?? "";
+    check("设置页渲染", settingsText.includes("快速复制") && settingsText.includes("备份"));
+    check("设置页无 AI 配置", !settingsText.includes("AI"), settingsText.includes("AI") ? "仍包含 AI 文案" : "");
   }
   const relevantErrors = errors.filter((message) => !message.includes("Not implemented: HTMLCanvasElement"));
   check("无前端运行时异常", relevantErrors.length === 0, relevantErrors.slice(0, 3).join(" | "));

@@ -119,6 +119,17 @@ async function screenshot(name) {
   } catch {
     // 截图不因提示尚未消失而失败
   }
+  if (name === "08-settings.png") {
+    // 公开截图里不保留本机测试目录，替换为脱敏示例路径；必须紧贴截图前执行，避免重渲染还原。
+    await cdp.evaluate(`(() => {
+      const inputs = [...document.querySelectorAll(".settings-view .settings-row.two input")];
+      const input = inputs[inputs.length - 1];
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      setter?.call(input, "C:\\\\mock\\\\data");
+      input?.blur();
+      return true;
+    })()`);
+  }
   const result = await cdp.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
   const file = path.join(shotsDir, name);
   await fs.writeFile(file, Buffer.from(result.data, "base64"));
@@ -201,6 +212,8 @@ check("相册首页", albumCount >= 3, "相册数 " + albumCount);
 await screenshot("00-albums.png");
 await clickText("全部素材");
 await waitFor("!!document.querySelector('.search input')", "全部素材网格");
+const nativeSelects = await cdp.evaluate("document.querySelectorAll('select').length");
+check("界面无原生下拉", nativeSelects === 0, "select " + nativeSelects + " 个");
 const cardCount = await cdp.evaluate("document.querySelectorAll('.sticker-card').length");
 check("素材展示", cardCount >= 8, "卡片数 " + cardCount);
 const imagesLoaded = await cdp.evaluate(
@@ -219,6 +232,8 @@ await waitFor("!document.querySelector('.detail-drawer')", "详情抽屉关闭")
 console.log("进入待整理区并生成本地规则建议…");
 await clickText("待整理");
 await waitFor("!!document.querySelector('.inbox-view')", "待整理区");
+const inboxText = await cdp.evaluate("document.querySelector('.inbox-view').innerText");
+check("待整理区无 AI 入口", !inboxText.includes("AI"));
 await screenshot("03-inbox.png");
 await clickText("本地规则整理");
 await waitFor("!!document.querySelector('.proposal-card')", "整理建议卡片", 30000);
@@ -265,31 +280,9 @@ check("备份恢复去重", true);
 console.log("查看设置页…");
 await clickText("设置");
 await waitFor("!!document.querySelector('.settings-view')", "设置页");
+const settingsText = await cdp.evaluate("document.querySelector('.settings-view').innerText");
+check("设置页无 AI 配置", !settingsText.includes("AI"));
 await screenshot("08-settings.png");
-
-if (process.env.MOCK_AI_BASE) {
-  console.log("配置模拟 AI 服务…");
-  await cdp.evaluate(
-    "window.__TAURI_INTERNALS__.invoke('save_settings', { patch: { ai: { enabled: true, baseUrl: " +
-      JSON.stringify(process.env.MOCK_AI_BASE) +
-      ", model: 'mock-vision', apiKey: 'test-key', vision: true, batchSize: 12 } } })",
-  );
-  await cdp.evaluate("location.reload()");
-  await waitFor("!!document.querySelector('.app')", "AI 配置后的界面");
-  await clickText("待整理");
-  await waitFor("!!document.querySelector('.inbox-view')", "待整理区");
-  await clickText("AI 整理");
-  await waitFor("document.body.innerText.includes('AI 建议')", "AI 整理建议", 40000);
-  check("AI 整理生成提案", true);
-  await screenshot("09-ai-proposal.png");
-  await clickText("应用", ".proposal-card .button.primary");
-  await waitFor("document.body.innerText.includes('已应用')", "AI 应用结果", 15000);
-  const aiState = await cdp.evaluate("window.__TAURI_INTERNALS__.invoke('get_state')");
-  const aiGroup = (aiState.groups ?? []).some((group) => group.name === "AI 测试");
-  const aiNote = (aiState.items ?? []).some((item) => typeof item.aiNote === "string" && item.aiNote.startsWith("AI："));
-  check("AI 建议写入分组与留痕", aiGroup && aiNote, "分组 " + aiGroup + "，留痕 " + aiNote);
-  await screenshot("10-ai-applied.png");
-}
 
 console.log("检查页面控制台错误…");
 check("无未捕获的前端异常", consoleErrors.length === 0, consoleErrors.slice(0, 3).join(" | "));

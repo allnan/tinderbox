@@ -85,7 +85,7 @@ pub fn create_proposal(
     }
     store.log(
         "proposal.create",
-        if kind == "ai" { "ai" } else { "rules" },
+        "rules",
         format!("生成整理建议：{}", proposal.summary),
         false,
         Vec::new(),
@@ -382,7 +382,7 @@ pub fn apply_proposal(
             if item.category_id.is_some() || !item.group_ids.is_empty() {
                 item.status = "sorted".to_string();
             }
-            item.ai_note = clean_text(&note, 200);
+            item.organize_note = clean_text(&note, 200);
         }
 
         let after = snapshot(&store.library.items[item_index]);
@@ -548,17 +548,17 @@ mod tests {
         let item_id = seed_item(&mut store, "测试表情");
         let proposal = create_proposal(
             &mut store,
-            "ai",
+            "rules",
             "测试覆盖",
             vec![DraftEntry {
                 item_id,
                 action: Action {
-                    new_category_name: "AI 分类".to_string(),
+                    new_category_name: "规则 分类".to_string(),
                     ..Action::default()
                 },
                 reason: "测试".to_string(),
                 confidence: 0.9,
-                source: "ai".to_string(),
+                source: "rules".to_string(),
             }],
             serde_json::json!({}),
         )

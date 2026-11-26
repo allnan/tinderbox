@@ -19,7 +19,7 @@ const FILTERS: Array<{ id: string; label: string; types: string[] }> = [
   { id: "delete", label: "删除", types: ["items.delete", "items.restore"] },
   { id: "catalog", label: "分类分组", types: ["catalog.createCategory", "catalog.updateCategory", "catalog.deleteCategory", "catalog.createGroup", "catalog.updateGroup", "catalog.deleteGroup"] },
   { id: "backup", label: "备份", types: ["backup.export", "backup.import", "backup.delete"] },
-  { id: "ai", label: "建议与设置", types: ["proposal.create", "settings.update"] },
+  { id: "proposal", label: "建议与设置", types: ["proposal.create", "settings.update"] },
 ];
 
 const TYPE_ICON: Record<string, IconName> = {
@@ -44,7 +44,7 @@ const TYPE_ICON: Record<string, IconName> = {
 
 const ACTOR_LABEL: Record<string, string> = {
   user: "我",
-  ai: "AI",
+  ai: "历史",
   rules: "规则",
   system: "系统",
 };

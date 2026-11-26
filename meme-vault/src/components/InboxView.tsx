@@ -4,6 +4,7 @@ import { classNames, formatRelative } from "../lib/format";
 import type { Proposal, ProposalEntry, StateView } from "../types";
 import { EmptyState, Icon, Spinner } from "./ui";
 import { StickerGrid } from "./StickerGrid";
+import { Select } from "./Select";
 
 interface InboxViewProps {
   state: StateView;
@@ -36,9 +37,8 @@ export function InboxView(props: InboxViewProps) {
   );
   const pendingProposals = state.proposals.filter((proposal) => proposal.status === "pending");
   const [tab, setTab] = useState<"items" | "proposals">("items");
-  const [busy, setBusy] = useState<"rules" | "ai" | null>(null);
+  const [busy, setBusy] = useState<"rules" | null>(null);
   const [applying, setApplying] = useState<string | null>(null);
-  const [remaining, setRemaining] = useState(0);
 
   const selectedIds = props.selection.size ? [...props.selection] : undefined;
   const scopeLabel = selectedIds ? `（选中 ${selectedIds.length}）` : "";
@@ -51,31 +51,6 @@ export function InboxView(props: InboxViewProps) {
       await props.refresh();
       setTab("proposals");
       props.notify("已生成整理建议，确认后才会改动素材", { kind: "success" });
-    } catch (error) {
-      props.notify((error as { message: string }).message, { kind: "error" });
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const runAi = async () => {
-    if (busy) return;
-    if (!state.settings.ai.enabled) {
-      props.notify("AI 整理还没有开启，请先到设置中配置模型", { kind: "info" });
-      return;
-    }
-    setBusy("ai");
-    try {
-      const result = await api.proposeAi(selectedIds);
-      setRemaining(result.remaining);
-      await props.refresh();
-      setTab("proposals");
-      props.notify(
-        result.remaining > 0
-          ? `AI 已整理 ${result.requested} 张，另有 ${result.remaining} 张可继续整理`
-          : `AI 已整理 ${result.requested} 张，确认建议后生效`,
-        { kind: "success" },
-      );
     } catch (error) {
       props.notify((error as { message: string }).message, { kind: "error" });
     } finally {
@@ -141,14 +116,6 @@ export function InboxView(props: InboxViewProps) {
           {busy === "rules" ? <Spinner /> : <Icon name="wand" size={16} />}
           本地规则整理{scopeLabel}
         </button>
-        <button className="button ai icon-text" disabled={busy !== null || inboxItems.length === 0} onClick={runAi}>
-          {busy === "ai" ? <Spinner /> : <Icon name="sparkles" size={16} />}
-          AI 整理{scopeLabel}
-        </button>
-        {!state.settings.ai.enabled && (
-          <span className="hint-inline">AI 未开启，可先使用本地规则，或在设置中接入模型</span>
-        )}
-        {remaining > 0 && <span className="hint-inline">还有 {remaining} 张未送入 AI，可再次点击继续</span>}
       </div>
 
       <div className="tabs">
@@ -185,16 +152,13 @@ export function InboxView(props: InboxViewProps) {
         )
       ) : pendingProposals.length === 0 ? (
         <EmptyState
-          icon="sparkles"
+          icon="wand"
           title="还没有待确认的整理建议"
-          description="点击“本地规则整理”按文件名和画面特征归类，或配置 AI 后让它读懂画面。建议生成后不会直接改动素材。"
+          description="点击“本地规则整理”按文件名和画面特征生成建议。建议生成后不会直接改动素材。"
           action={
             <div className="empty-actions">
               <button className="button soft" onClick={runRules} disabled={busy !== null || inboxItems.length === 0}>
                 <Icon name="wand" size={15} />本地规则整理
-              </button>
-              <button className="button ai" onClick={runAi} disabled={busy !== null || inboxItems.length === 0}>
-                <Icon name="sparkles" size={15} />AI 整理
               </button>
             </div>
           }
@@ -299,18 +263,15 @@ function ProposalCard({
     <section className={classNames("proposal-card", readonly && "readonly")}>
       <header className="proposal-head">
         <div className="proposal-title">
-          <span className={classNames("source-badge", proposal.kind)}>
-            <Icon name={proposal.kind === "ai" ? "sparkles" : "wand"} size={13} />
-            {proposal.kind === "ai" ? "AI 建议" : "规则建议"}
+          <span className={classNames("source-badge", proposal.kind === "ai" ? "legacy" : proposal.kind)}>
+            <Icon name={proposal.kind === "ai" ? "history" : "wand"} size={13} />
+            {proposal.kind === "ai" ? "历史建议" : "规则建议"}
           </span>
           <strong>{proposal.summary}</strong>
           <span className="proposal-time">{formatRelative(proposal.createdAt)}</span>
         </div>
         <div className="proposal-right">
           <span className={classNames("status-pill", proposal.status)}>{STATUS_LABEL[proposal.status] ?? proposal.status}</span>
-          {proposal.kind === "ai" && typeof proposal.meta?.model === "string" && (
-            <span className="model-name">{String(proposal.meta.model)}</span>
-          )}
         </div>
       </header>
 
@@ -357,24 +318,22 @@ function ProposalCard({
                   ))}
                 </div>
                 {!readonly && proposal.status === "pending" && (
-                  <select
+                  <Select
                     className="entry-select"
-                    aria-label="修改建议分类"
+                    ariaLabel="修改建议分类"
                     value={entry.action.categoryId ?? (entry.action.newCategoryName ? "__new__" : "__keep__")}
-                    onChange={(event) => {
-                      const value = event.target.value;
+                    options={[
+                      { value: "__keep__", label: "不改变分类" },
+                      ...(entry.action.newCategoryName
+                        ? [{ value: "__new__", label: `新分类 · ${entry.action.newCategoryName}`, disabled: true }]
+                        : []),
+                      ...state.categories.map((category) => ({ value: category.id, label: category.name })),
+                    ]}
+                    onChange={(value) => {
                       if (value === "__new__") return;
                       void updateEntry(entry, { action: { categoryId: value === "__keep__" ? "" : value } });
                     }}
-                  >
-                    <option value="__keep__">不改变分类</option>
-                    {entry.action.newCategoryName && (
-                      <option value="__new__">新分类 · {entry.action.newCategoryName}</option>
-                    )}
-                    {state.categories.map((category) => (
-                      <option key={category.id} value={category.id}>{category.name}</option>
-                    ))}
-                  </select>
+                  />
                 )}
                 {entry.reason && <p className="entry-reason">{entry.reason}</p>}
               </div>

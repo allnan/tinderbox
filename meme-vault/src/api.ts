@@ -1,6 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
-  AiProposeResult,
   ApplyResult,
   ApiError,
   BackupInfo,
@@ -60,7 +59,6 @@ export const api = {
     call<StickerGroup>("update_group", { id, name, color, note }),
   deleteGroup: (id: string) => call<number>("delete_group", { id }),
   proposeRules: (ids?: string[]) => call<Proposal>("propose_rules", { ids }),
-  proposeAi: (ids?: string[]) => call<AiProposeResult>("propose_ai", { ids }),
   updateProposal: (id: string, entries: unknown[]) => call<Proposal>("update_proposal", { id, entries }),
   applyProposal: (id: string, entryIds?: string[]) => call<ApplyResult>("apply_proposal", { id, entryIds }),
   dismissProposal: (id: string) => call<Proposal>("dismiss_proposal", { id }),
@@ -77,7 +75,6 @@ export const api = {
   showQuick: () => call<void>("show_quick"),
   setQuickAlwaysOnTop: (value: boolean) => call<boolean>("set_quick_always_on_top", { value }),
   saveSettings: (patch: Record<string, unknown>) => call<SettingsView>("save_settings", { patch }),
-  testAi: (overrides?: Record<string, unknown>) => call<string>("test_ai", { overrides }),
 };
 
 export function mediaUrl(kind: "image" | "thumb", sha256: string): string {

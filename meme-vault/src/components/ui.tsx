@@ -13,6 +13,7 @@ export type IconName =
   | "trash"
   | "close"
   | "chevron"
+  | "chevron-down"
   | "sparkles"
   | "wand"
   | "history"
@@ -44,6 +45,7 @@ const PATHS: Record<IconName, ReactNode> = {
   trash: <><path d="M4.5 7h15M9 7V5.2A1.2 1.2 0 0 1 10.2 4h3.6A1.2 1.2 0 0 1 15 5.2V7M6.5 7l.8 12a1.6 1.6 0 0 0 1.6 1.5h6.2a1.6 1.6 0 0 0 1.6-1.5L17.5 7" /><path d="M10 11v6M14 11v6" /></>,
   close: <><path d="m6 6 12 12M18 6 6 18" /></>,
   chevron: <path d="m9 6 6 6-6 6" />,
+  "chevron-down": <path d="m6 9 6 6 6-6" />,
   sparkles: <><path d="M12 3.5 13.7 9l5.3 1.7-5.3 1.8L12 18l-1.7-5.5L5 10.7 10.3 9Z" /><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8Z" /></>,
   wand: <><path d="m5 19 9-9M14.5 4.5l1 2.2 2.2 1-2.2 1-1 2.2-1-2.2-2.2-1 2.2-1Z" /><path d="m19 12 .6 1.3 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6Z" /></>,
   history: <><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4.5 9" /><path d="M4.5 4.5V9H9" /><path d="M12 8v4.5l3 2" /></>,

@@ -25,7 +25,7 @@ pub fn snapshot(item: &Sticker) -> Snapshot {
             "inbox".to_string()
         },
         deleted: item.deleted,
-        ai_note: item.ai_note.clone(),
+        organize_note: item.organize_note.clone(),
     }
 }
 
@@ -43,7 +43,7 @@ pub fn apply_snapshot(item: &mut Sticker, snapshot: &Snapshot) {
     };
     item.deleted = snapshot.deleted;
     item.deleted_at = if snapshot.deleted { Some(now_ms()) } else { None };
-    item.ai_note = snapshot.ai_note.clone();
+    item.organize_note = snapshot.organize_note.clone();
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

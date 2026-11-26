@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "表情包仓库 — Tauri Windows 桌面表情包管理工具：归类、分组、展示、快速复制、备份与可撤回的 AI 整理",
+  "description": "表情包仓库 — Tauri Windows 桌面表情包管理工具：归类、分组、展示、快速复制、备份与可撤回的本地规则整理",
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:web": "node scripts/dev-server.mjs",

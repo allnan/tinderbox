@@ -3,6 +3,7 @@ import { mediaUrl } from "../api";
 import { formatBytes, formatDateTime } from "../lib/format";
 import type { Category, Sticker, StickerGroup } from "../types";
 import { Icon } from "./ui";
+import { Select } from "./Select";
 
 interface DetailDrawerProps {
   item: Sticker;
@@ -116,19 +117,19 @@ export function DetailDrawer(props: DetailDrawerProps) {
           />
         </label>
 
-        <label className="field">
+        <div className="field">
           <span>分类</span>
-          <select
+          <Select
             className="input"
+            ariaLabel="分类"
             value={item.categoryId ?? ""}
-            onChange={(event) => props.onPatch({ categoryId: event.target.value || null })}
-          >
-            <option value="">未归类</option>
-            {props.categories.map((category) => (
-              <option key={category.id} value={category.id}>{category.name}</option>
-            ))}
-          </select>
-        </label>
+            options={[
+              { value: "", label: "未归类" },
+              ...props.categories.map((category) => ({ value: category.id, label: category.name })),
+            ]}
+            onChange={(value) => props.onPatch({ categoryId: value || null })}
+          />
+        </div>
 
         <div className="field">
           <span>分组</span>
@@ -204,10 +205,10 @@ export function DetailDrawer(props: DetailDrawerProps) {
         </label>
       </div>
 
-      {item.aiNote && (
-        <div className="ai-note">
-          <Icon name="sparkles" size={14} />
-          <span>{item.aiNote}</span>
+      {item.organizeNote && (
+        <div className="organize-note">
+          <Icon name="wand" size={14} />
+          <span>{item.organizeNote}</span>
         </div>
       )}
 

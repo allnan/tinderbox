@@ -160,7 +160,7 @@ export default function App() {
       rows = rows.filter((item) => {
         const categoryName = item.categoryId ? categoriesById.get(item.categoryId)?.name ?? "" : "";
         const groupNames = item.groupIds.map((id) => groupsById.get(id)?.name ?? "").join(" ");
-        return [item.name, item.note, item.tags.join(" "), item.aiNote, categoryName, groupNames]
+        return [item.name, item.note, item.tags.join(" "), item.organizeNote, categoryName, groupNames]
           .join(" ")
           .toLowerCase()
           .includes(needle);

@@ -30,7 +30,9 @@ export async function killRunning() {
 
 export async function deployPortable(source) {
   if (process.env.MEME_VAULT_SKIP_DEPLOY === "1") {
-    console.log("[deploy] 已按 MEME_VAULT_SKIP_DEPLOY=1 跳过桌面投放");
+    console.warn(
+      "[deploy] 警告：开发阶段每次构建都必须覆盖桌面版本；本次按 MEME_VAULT_SKIP_DEPLOY=1 跳过，请确认这是用户明确要求。",
+    );
     return null;
   }
   const targetDir = await resolveDeployDir();

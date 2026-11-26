@@ -46,5 +46,7 @@ console.log(`已生成 ${target}（${(size / 1024 / 1024).toFixed(1)} MB）`);
 try {
   await deployPortable(target);
 } catch (error) {
-  console.warn("[deploy] 桌面投放失败（可用 MEME_VAULT_SKIP_DEPLOY=1 跳过）：" + error.message);
+  // 开发阶段投放是强制步骤：投放失败必须让构建失败，不能留下“构建成功但桌面还是旧版”的状态。
+  console.error("[deploy] 桌面投放失败，构建按失败处理：" + error.message);
+  process.exitCode = 1;
 }

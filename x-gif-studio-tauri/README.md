@@ -27,18 +27,9 @@
 - `scripts/tauri-shim.js` 用 `window.desktop` 实现 DesktopApi，所有调用通过 Tauri invoke 进入 Rust 命令；
 - 项目已自包含，不依赖任何外部桌面工程或产物。
 
-## 真实体积对比（2026-11-16 实测）
+## 体积与依赖
 
-| 项目 | 大小 | 说明 |
-| --- | --- | --- |
-| Tauri exe 本体 | 5,021,696 B（4.79 MiB） | 含 Rust 后端与内嵌前端，不含外部转换工具 |
-| 外部工具（首次使用下载到 tools/） | 107,056,576 B（102.1 MiB） | ffmpeg 9.0.2 + gifski 1.32.0 + gifsicle 1.97 |
-| Tauri 完整磁盘占用近似值 | 约 106.8 MiB | exe + tools，无需打包 Electron 运行时 |
-
-
-结论：exe 本体只有 4.78 MiB，不打包 Chromium；但完整转换功能需要 ffmpeg 等外部工具（102.1 MiB），所以首次下载工具后，完整磁盘占用约 107.3 MiB。优势是 exe 本体小、工具按需下载、无 Chromium 运行时。
-
-> SHA256：`8BE5C9E2F287F216E788652D98CB69432D74E9A8AA46A677A120FF5B03AE11B0`
+项目不打包 Chromium 或 Electron 运行时，exe 本体保持轻量；主要的磁盘占用来自转换用的外部工具（ffmpeg、gifski、gifsicle），首次使用时才下载到 `tools/`，之后可按需更新或替换。
 
 ## 真实功能验证（2026-11-16）
 

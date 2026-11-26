@@ -122,7 +122,9 @@ pub struct Sticker {
     pub usage_count: u32,
     pub last_used_at: Option<i64>,
     pub origin: String,
-    pub ai_note: String,
+    /// 整理说明（旧字段名为 aiNote，保留别名以兼容既有数据）。
+    #[serde(alias = "aiNote")]
+    pub organize_note: String,
 }
 
 impl Default for Sticker {
@@ -151,7 +153,7 @@ impl Default for Sticker {
             usage_count: 0,
             last_used_at: None,
             origin: "import".to_string(),
-            ai_note: String::new(),
+            organize_note: String::new(),
         }
     }
 }
@@ -261,7 +263,8 @@ pub struct Snapshot {
     pub favorite: bool,
     pub status: String,
     pub deleted: bool,
-    pub ai_note: String,
+    #[serde(alias = "aiNote")]
+    pub organize_note: String,
 }
 
 impl Default for Snapshot {
@@ -275,7 +278,7 @@ impl Default for Snapshot {
             favorite: false,
             status: "inbox".to_string(),
             deleted: false,
-            ai_note: String::new(),
+            organize_note: String::new(),
         }
     }
 }
@@ -397,34 +400,7 @@ pub fn default_categories() -> Vec<Category> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
-pub struct AiConfig {
-    pub enabled: bool,
-    pub base_url: String,
-    pub model: String,
-    pub api_key: String,
-    pub vision: bool,
-    pub batch_size: u32,
-    pub timeout_ms: u64,
-}
-
-impl Default for AiConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            base_url: "https://api.openai.com/v1".to_string(),
-            model: "gpt-4o-mini".to_string(),
-            api_key: String::new(),
-            vision: true,
-            batch_size: 12,
-            timeout_ms: 120_000,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
 pub struct Settings {
-    pub ai: AiConfig,
     pub copy_mode: String,
     pub card_size: u32,
     pub auto_backup: bool,
@@ -435,7 +411,6 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            ai: AiConfig::default(),
             copy_mode: "image".to_string(),
             card_size: 150,
             auto_backup: true,
@@ -446,20 +421,7 @@ impl Default for Settings {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AiView {
-    pub enabled: bool,
-    pub base_url: String,
-    pub model: String,
-    pub vision: bool,
-    pub batch_size: u32,
-    pub timeout_ms: u64,
-    pub has_api_key: bool,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct SettingsView {
-    pub ai: AiView,
     pub copy_mode: String,
     pub card_size: u32,
     pub auto_backup: bool,
@@ -469,15 +431,6 @@ pub struct SettingsView {
 impl From<&Settings> for SettingsView {
     fn from(value: &Settings) -> Self {
         Self {
-            ai: AiView {
-                enabled: value.ai.enabled,
-                base_url: value.ai.base_url.clone(),
-                model: value.ai.model.clone(),
-                vision: value.ai.vision,
-                batch_size: value.ai.batch_size,
-                timeout_ms: value.ai.timeout_ms,
-                has_api_key: !value.ai.api_key.is_empty(),
-            },
             copy_mode: value.copy_mode.clone(),
             card_size: value.card_size,
             auto_backup: value.auto_backup,
@@ -500,19 +453,28 @@ pub struct StateView {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AiPreset {
-    pub id: String,
-    pub label: String,
-    pub base_url: String,
-    pub model: String,
-    pub vision: bool,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct SystemInfo {
     pub version: String,
     pub platform: String,
     pub data_dir: String,
-    pub ai_presets: Vec<AiPreset>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn legacy_ai_note_is_read_and_saved_as_organize_note() {
+        let sticker: Sticker =
+            serde_json::from_value(serde_json::json!({ "name": "旧素材", "aiNote": "规则：测试" }))
+                .expect("旧 aiNote 应能反序列化");
+        assert_eq!(sticker.organize_note, "规则：测试");
+        let value = serde_json::to_value(&sticker).expect("serialize");
+        assert_eq!(value["organizeNote"], "规则：测试");
+        assert!(value.get("aiNote").is_none());
+
+        let snapshot: Snapshot =
+            serde_json::from_value(serde_json::json!({ "aiNote": "旧说明" })).expect("旧快照应能反序列化");
+        assert_eq!(snapshot.organize_note, "旧说明");
+    }
 }

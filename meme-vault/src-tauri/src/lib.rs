@@ -1,4 +1,3 @@
-mod ai;
 mod backup;
 mod clipboard;
 mod commands;
@@ -106,7 +105,6 @@ pub fn run() {
             commands::update_group,
             commands::delete_group,
             commands::propose_rules,
-            commands::propose_ai,
             commands::update_proposal,
             commands::apply_proposal,
             commands::dismiss_proposal,
@@ -120,7 +118,6 @@ pub fn run() {
             commands::delete_backup,
             commands::open_data_dir,
             commands::save_settings,
-            commands::test_ai,
             commands::show_quick,
             commands::quick_visible,
             commands::quick_hotkey_registered,

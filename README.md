@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./icon.png" width="128" height="128" alt="Tinderbox 仓库图标">
+</p>
+
 # Tinderbox
 
 这里存放我借助 AI 开发的一些小工具、小项目和可复用组件库。每个项目使用独立文件夹，分别维护源码、依赖和使用说明。
@@ -15,7 +19,7 @@
 | <img src="./clash-flow-manager/icon.png" width="48" height="48" alt=""> | Clash 订阅与流量管理 | Tauri Windows 便携桌面工具，合并订阅、管理可视化策略组，并通过 Mihomo 核对实际规则与节点，查看流量历史。 | Windows 启动增加单实例锁，重复启动唤起现有窗口；托盘图标双击打开主界面；策略组顺序弹窗铺满窗口可用高度，紧凑卡片沿竖向分布；流量趋势使用 Recharts 并列显示上传/下载，悬停提示即时定位且点击不留黑框；模板导入限于已支持的常见格式。 | [clash-flow-manager](./clash-flow-manager/) | 用户选择的便携目录 | 用户桌面下的临时测试目录 |
 | <img src="./codex-usage-panel/icon.png" width="48" height="48" alt=""> | Codex 用量预测 | Codex 桌面侧边栏插件，显示 5 小时与周额度、重置时间、历史用量曲线和用量预测。 | v0.1.30；真实使用窗口的预测校准待评估。 | [codex-usage-panel](./codex-usage-panel/) | — | — |
 | <img src="./palette-studio/icon.png" width="48" height="48" alt=""> | 配色工坊 | Windows 桌面工具，为前端项目生成、管理、检查并导出配色方案。 | 功能已实现；验收基线通过。 | [palette-studio](./palette-studio/) | — | — |
-| <img src="./meme-vault/icon.png" width="48" height="48" alt=""> | 表情包仓库 | Windows 相册式表情包工具：全局热键快速呼出、点一下即复制，主界面按相册拖动整理，并提供可撤回的规则与 AI 整理。 | **已暂停（2026-11-19）**；v0.1.0；单文件便携版，构建、18 项单测、26 项 UI 运行时冒烟（主界面 + 快捷窗口）、release 无窗口自检与 12/12 端到端冒烟通过；AI 真实服务与第三方应用粘贴场景待验证。 | [meme-vault](./meme-vault/) | — | `F:\桌面\meme` |
+| <img src="./meme-vault/icon.png" width="48" height="48" alt=""> | 表情包仓库 | Windows 相册式表情包工具：全局热键快速呼出、点一下即复制，主界面按相册拖动整理，并提供可撤回的本地规则整理。 | 恢复开发（2026-11-24）；v0.1.0；原生下拉已全部替换为自绘下拉；AI 整理已移出并归档到 `archive/ai/`；构建、16 项单测、25 项主界面与 7 项快捷窗口冒烟、release 自检通过；开发阶段构建后已强制覆盖桌面版本（SHA256 一致）；真实 WebView2 窗口已复验 AI 移除与下拉；第三方应用粘贴场景待复验。 | [meme-vault](./meme-vault/) | — | `F:\桌面\meme` |
 | <img src="./goodnight-shutdown-tool/icon.png" width="48" height="48" alt=""> | 晚安定时关机 | Windows 桌面工具，按倒计时或指定时刻安排强制关机，并提供取消与分区时间预览。 | 逻辑测试通过；界面与真实关机结果待验证；已安装。 | [goodnight-shutdown-tool](./goodnight-shutdown-tool/) | `D:\1-Tools\[TinderBox]-goodnight-shutdown-tool` | `F:\桌面` |
 | <img src="./endfield-resources-tools/icon.png" width="48" height="48" alt=""> | 终末地资源账本 | Windows x64 与 Android 资源记录工具，提供抽数换算、游戏日趋势和局域网同步。 | v2.7.3+28；真实设备间局域网同步待验证；已安装。 | [endfield-resources-tools](./endfield-resources-tools/) | 当前：`D:\1-Tools\[TinderBox]-endfield-resources-tools`<br>原程序及数据来源：`F:\游戏工具\终末地\终末地资源账本` | — |
 | <img src="./x-gif-studio-tauri/icon.png" width="48" height="48" alt=""> | X 媒体工坊 | Windows 桌面工具，用于解析 X（Twitter）推文、保存原始媒体并导出 GIF/WebP。 | 真实功能版；自动验证 15/15 项通过；已安装。 | [x-gif-studio-tauri](./x-gif-studio-tauri/) | `D:\1-Tools\[TinderBox]-xMedia` | `F:\桌面\xMedia` |
@@ -70,6 +74,8 @@
 ## 视觉规范
 
 Tinderbox 内部项目图标遵循[图标风格规范](./docs/图标风格.md)。
+
+仓库自身使用根目录 [icon.png](./icon.png) 作为 Tinderbox 的标志，显示在本页顶部；它不属于任何子项目，也不随子项目图标变化，不得删除。
 
 ## AI 协作
 

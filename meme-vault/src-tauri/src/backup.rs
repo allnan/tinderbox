@@ -79,14 +79,7 @@ pub fn export_backup(store: &mut Store) -> Result<BackupInfo, AppError> {
     let settings_value = json!({
         "copyMode": store.settings.copy_mode,
         "cardSize": store.settings.card_size,
-        "autoBackup": store.settings.auto_backup,
-        "ai": {
-            "baseUrl": store.settings.ai.base_url,
-            "model": store.settings.ai.model,
-            "vision": store.settings.ai.vision,
-            "batchSize": store.settings.ai.batch_size,
-            "apiKey": if store.settings.ai.api_key.is_empty() { "" } else { "[REDACTED_SECRET]" }
-        }
+        "autoBackup": store.settings.auto_backup
     });
 
     let file = File::create(&tmp_path)?;
@@ -303,7 +296,7 @@ pub fn import_backup(store: &mut Store, path: &Path) -> Result<ImportReport, App
             usage_count: source.usage_count,
             last_used_at: source.last_used_at,
             origin: "backup".to_string(),
-            ai_note: source.ai_note.clone(),
+            organize_note: source.organize_note.clone(),
         };
         if item.name.is_empty() {
             item.name = "恢复的表情".to_string();

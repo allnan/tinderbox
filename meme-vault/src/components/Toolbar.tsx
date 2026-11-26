@@ -3,6 +3,12 @@ import { SORT_LABELS, type SortKey } from "../lib/nav";
 import type { Sticker } from "../types";
 import { classNames } from "../lib/format";
 import { Icon } from "./ui";
+import { Select } from "./Select";
+
+const SORT_OPTIONS = (Object.keys(SORT_LABELS) as SortKey[]).map((value) => ({
+  value,
+  label: SORT_LABELS[value],
+}));
 
 interface ToolbarProps {
   title: string;
@@ -79,14 +85,16 @@ export function Toolbar(props: ToolbarProps) {
         </label>
 
         <div className="control-group">
-          <label className="select-wrap">
-            <Icon name="sort" size={15} />
-            <select value={props.sort} onChange={(event) => props.onSort(event.target.value as SortKey)}>
-              {Object.entries(SORT_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </label>
+          <Select
+            className="select-wrap"
+            icon="sort"
+            iconSize={15}
+            ariaLabel="排序方式"
+            title="排序方式"
+            value={props.sort}
+            options={SORT_OPTIONS}
+            onChange={(value) => props.onSort(value as SortKey)}
+          />
 
           <label className="size-control" title="卡片大小">
             <Icon name="grid" size={15} />

@@ -134,7 +134,7 @@ export function BackupView(props: BackupViewProps) {
           </p>
           <ul className="backup-points">
             <li>包含原图与缩略图，恢复后可直接使用</li>
-            <li>不包含 AI API Key（已脱敏）</li>
+            <li>只包含本机素材库数据，不含账号或密钥</li>
             <li>默认每天自动备份一次，最多保留 10 份</li>
           </ul>
           <button className="button primary wide" onClick={exportBackup} disabled={busy !== null}>

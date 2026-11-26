@@ -7,7 +7,6 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, State};
 
-use crate::ai;
 use crate::backup;
 use crate::clipboard;
 use crate::history::{is_supported, revert, snapshot};
@@ -50,16 +49,6 @@ pub struct HistoryPage {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AiProposeResult {
-    pub proposal: Proposal,
-    pub requested: usize,
-    pub remaining: usize,
-    pub model: String,
-    pub usage: Value,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct CopyResult {
     pub ok: bool,
     pub mode: String,
@@ -77,7 +66,6 @@ pub fn get_system(state: State<'_, AppState>) -> ApiResult<SystemInfo> {
         version: env!("CARGO_PKG_VERSION").to_string(),
         platform: std::env::consts::OS.to_string(),
         data_dir: store.data_dir.to_string_lossy().to_string(),
-        ai_presets: ai::presets(),
     })
 }
 
@@ -617,90 +605,11 @@ pub fn propose_rules(
     if entries.is_empty() {
         return Err(AppError::new(
             "empty",
-            "这些素材没有可识别的特征，可以手动整理或试试 AI 整理",
+            "这些素材没有可识别的特征，可以手动整理",
         ));
     }
     let summary = format!("本地规则 · {} 条建议", entries.len());
     create_proposal(&mut store, "rules", &summary, entries, json!({}))
-}
-
-#[tauri::command(rename_all = "camelCase")]
-pub async fn propose_ai(
-    state: State<'_, AppState>,
-    ids: Option<Vec<String>>,
-) -> ApiResult<AiProposeResult> {
-    let (settings, categories, groups, batch, total, data_dir) = {
-        let store = lock_store(&state)?;
-        if !store.settings.ai.enabled {
-            return Err(AppError::new("ai_disabled", "还没有开启 AI 整理，请先在设置中启用"));
-        }
-        let candidates = candidates(&store, ids);
-        if candidates.is_empty() {
-            return Err(AppError::new("empty", "没有需要整理的素材"));
-        }
-        let total = candidates.len();
-        let batch: Vec<Sticker> = candidates
-            .into_iter()
-            .take(store.settings.ai.batch_size as usize)
-            .collect();
-        (
-            store.settings.clone(),
-            store.library.categories.clone(),
-            store.library.groups.clone(),
-            batch,
-            total,
-            store.data_dir.clone(),
-        )
-    };
-    let mut items: Vec<(Sticker, String)> = Vec::new();
-    for item in batch {
-        let mut image = String::new();
-        if settings.ai.vision {
-            if let Ok(bytes) = fs::read(data_dir.join("thumbs").join(&item.sha256)) {
-                let mime = if item.thumb_mime.is_empty() {
-                    "image/webp"
-                } else {
-                    item.thumb_mime.as_str()
-                };
-                image = format!(
-                    "data:{};base64,{}",
-                    mime,
-                    base64::engine::general_purpose::STANDARD.encode(bytes)
-                );
-            }
-        }
-        items.push((item, image));
-    }
-    let outcome = ai::request_ai(&settings, &categories, &groups, &items).await?;
-    let plain_items: Vec<Sticker> = items.iter().map(|(item, _)| item.clone()).collect();
-    let entries = ai::parse_ai_response(&outcome.content, &plain_items, &categories, &groups)?;
-    if entries.is_empty() {
-        return Err(AppError::new(
-            "ai_empty",
-            "AI 没有给出新的整理建议，可能这些素材已经足够整理好了",
-        ));
-    }
-    let requested = items.len();
-    let summary = format!("AI 整理 · {} 条建议 · {}", entries.len(), outcome.model);
-    let mut store = lock_store(&state)?;
-    let proposal = create_proposal(
-        &mut store,
-        "ai",
-        &summary,
-        entries,
-        json!({
-            "model": outcome.model,
-            "usage": outcome.usage,
-            "requested": requested,
-        }),
-    )?;
-    Ok(AiProposeResult {
-        proposal,
-        requested,
-        remaining: total.saturating_sub(requested),
-        model: outcome.model,
-        usage: outcome.usage,
-    })
 }
 
 #[tauri::command(rename_all = "camelCase")]
@@ -888,22 +797,6 @@ pub fn save_settings(state: State<'_, AppState>, patch: Value) -> ApiResult<Sett
     Ok(SettingsView::from(&store.settings))
 }
 
-#[tauri::command(rename_all = "camelCase")]
-pub async fn test_ai(state: State<'_, AppState>, overrides: Option<Value>) -> ApiResult<String> {
-    let settings = {
-        let store = lock_store(&state)?;
-        let mut settings = store.settings.clone();
-        if let Some(overrides) = overrides {
-            let mut patch = serde_json::Map::new();
-            patch.insert("ai".to_string(), overrides);
-            apply_settings_patch(&mut settings, &Value::Object(patch));
-        }
-        settings.normalize();
-        settings
-    };
-    ai::test_connection(&settings).await
-}
-
 // ------------------------------------------------------------------ helpers
 
 fn candidates(store: &Store, ids: Option<Vec<String>>) -> Vec<Sticker> {
@@ -1056,7 +949,7 @@ fn import_image_bytes(
         usage_count: 0,
         last_used_at: None,
         origin: "import".to_string(),
-        ai_note: String::new(),
+        organize_note: String::new(),
     };
     store.library.items.push(item.clone());
     Ok(Some(item))
@@ -1196,8 +1089,8 @@ fn apply_item_patch(
     if let Some(value) = patch.get("favorite").and_then(Value::as_bool) {
         item.favorite = value;
     }
-    if let Some(value) = patch.get("aiNote").and_then(Value::as_str) {
-        item.ai_note = clean_text(value, 200);
+    if let Some(value) = patch.get("organizeNote").and_then(Value::as_str) {
+        item.organize_note = clean_text(value, 200);
     }
     let explicit_status = patch.get("status").and_then(Value::as_str).filter(|value| {
         *value == "inbox" || *value == "sorted"
@@ -1217,33 +1110,6 @@ fn apply_item_patch(
 }
 
 fn apply_settings_patch(settings: &mut Settings, patch: &Value) {
-    if let Some(ai) = patch.get("ai") {
-        if let Some(value) = ai.get("enabled").and_then(Value::as_bool) {
-            settings.ai.enabled = value;
-        }
-        if let Some(value) = ai.get("baseUrl").and_then(Value::as_str) {
-            settings.ai.base_url = clean_text(value, 300);
-        }
-        if let Some(value) = ai.get("model").and_then(Value::as_str) {
-            settings.ai.model = clean_text(value, 120);
-        }
-        if let Some(value) = ai.get("vision").and_then(Value::as_bool) {
-            settings.ai.vision = value;
-        }
-        if let Some(value) = ai.get("batchSize").and_then(Value::as_u64) {
-            settings.ai.batch_size = value.clamp(1, 24) as u32;
-        }
-        if let Some(value) = ai.get("timeoutMs").and_then(Value::as_u64) {
-            settings.ai.timeout_ms = value.clamp(10_000, 300_000);
-        }
-        if let Some(value) = ai.get("apiKey").and_then(Value::as_str) {
-            if value == "__CLEAR__" {
-                settings.ai.api_key.clear();
-            } else if !value.trim().is_empty() {
-                settings.ai.api_key = value.trim().to_string();
-            }
-        }
-    }
     if let Some(value) = patch.get("copyMode").and_then(Value::as_str) {
         if value == "image" || value == "file" {
             settings.copy_mode = value.to_string();

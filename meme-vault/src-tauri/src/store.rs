@@ -262,15 +262,6 @@ impl Library {
 
 impl Settings {
     pub fn normalize(&mut self) {
-        if self.ai.base_url.trim().is_empty() {
-            self.ai.base_url = "https://api.openai.com/v1".to_string();
-        }
-        self.ai.base_url = self.ai.base_url.trim_end_matches('/').to_string();
-        if self.ai.model.trim().is_empty() {
-            self.ai.model = "gpt-4o-mini".to_string();
-        }
-        self.ai.batch_size = self.ai.batch_size.clamp(1, 24);
-        self.ai.timeout_ms = self.ai.timeout_ms.clamp(10_000, 300_000);
         if !["image", "file"].contains(&self.copy_mode.as_str()) {
             self.copy_mode = "image".to_string();
         }

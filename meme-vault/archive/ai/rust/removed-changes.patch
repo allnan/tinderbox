@@ -1,0 +1,1992 @@
+diff --git a/a/package.json b/b/package.json
+index 347ba4e..271f594 100644
+--- a/a/package.json
++++ b/b/package.json
+@@ -3,7 +3,7 @@
+   "version": "0.1.0",
+   "private": true,
+   "type": "module",
+-  "description": "表情包仓库 — Tauri Windows 桌面表情包管理工具：归类、分组、展示、快速复制、备份与可撤回的 AI 整理",
++  "description": "表情包仓库 — Tauri Windows 桌面表情包管理工具：归类、分组、展示、快速复制、备份与可撤回的本地规则整理",
+   "scripts": {
+     "dev": "node scripts/dev.mjs",
+     "dev:web": "node scripts/dev-server.mjs",
+diff --git a/a/scripts/mock-ai.mjs b/a/scripts/mock-ai.mjs
+deleted file mode 100644
+index e059acf..0000000
+--- a/a/scripts/mock-ai.mjs
++++ /dev/null
+@@ -1,54 +0,0 @@
+-// 本地模拟 OpenAI 兼容视觉服务，仅用于端到端验证 AI 整理链路。
+-import http from "node:http";
+-
+-const port = Number(process.env.MOCK_AI_PORT) || 7412;
+-
+-const server = http.createServer((request, response) => {
+-  let body = "";
+-  request.on("data", (chunk) => {
+-    body += chunk;
+-  });
+-  request.on("end", () => {
+-    if (!request.url?.endsWith("/chat/completions")) {
+-      response.writeHead(404).end("not found");
+-      return;
+-    }
+-    let payload = {};
+-    try {
+-      payload = JSON.parse(body || "{}");
+-    } catch {
+-      response.writeHead(400).end("bad json");
+-      return;
+-    }
+-    const text = JSON.stringify(payload.messages ?? []);
+-    const ids = [...new Set([...text.matchAll(/id=(item_[a-z0-9]+)/g)].map((match) => match[1]))];
+-    if (ids.length === 0) {
+-      response.writeHead(200, { "Content-Type": "application/json" });
+-      response.end(JSON.stringify({ model: "mock-vision", choices: [{ message: { content: "OK" } }] }));
+-      return;
+-    }
+-    const items = ids.map((id, index) => ({
+-      id,
+-      category: index % 3 === 0 ? "可爱" : index % 3 === 1 ? "无语" : "",
+-      newCategory: index % 3 === 2 ? "模拟分类" : "",
+-      groups: [],
+-      newGroups: ["AI 测试"],
+-      tags: ["AI 标记"],
+-      name: "",
+-      confidence: 0.86,
+-      reason: "模拟视觉服务：根据画面判断",
+-    }));
+-    response.writeHead(200, { "Content-Type": "application/json" });
+-    response.end(
+-      JSON.stringify({
+-        model: "mock-vision",
+-        choices: [{ message: { content: JSON.stringify({ items }) } }],
+-        usage: { prompt_tokens: 120, completion_tokens: 80 },
+-      }),
+-    );
+-  });
+-});
+-
+-server.listen(port, "127.0.0.1", () => {
+-  console.log("模拟 AI 服务：http://127.0.0.1:" + port + "/v1");
+-});
+diff --git a/a/scripts/quick-smoke.mjs b/b/scripts/quick-smoke.mjs
+index d2efa07..5cab2f8 100644
+--- a/a/scripts/quick-smoke.mjs
++++ b/b/scripts/quick-smoke.mjs
+@@ -17,17 +17,17 @@ const state = {
+       id: "item_quick_1", sha256: "a".repeat(64), ext: "png", mime: "image/png", thumbMime: "image/png",
+       width: 360, height: 360, bytes: 1000, phash: "0000000000000000", name: "大笑猫", note: "",
+       categoryId: "cat_happy", groupIds: [], tags: ["笑"], favorite: true, status: "sorted", deleted: false,
+-      deletedAt: null, importedAt: now, createdAt: now, usageCount: 3, lastUsedAt: now, origin: "import", aiNote: "",
++      deletedAt: null, importedAt: now, createdAt: now, usageCount: 3, lastUsedAt: now, origin: "import", organizeNote: "",
+     },
+     {
+       id: "item_quick_2", sha256: "b".repeat(64), ext: "gif", mime: "image/gif", thumbMime: "image/png",
+       width: 300, height: 300, bytes: 2000, phash: "000000000000000f", name: "无语熊猫", note: "",
+       categoryId: null, groupIds: [], tags: [], favorite: false, status: "inbox", deleted: false,
+-      deletedAt: null, importedAt: now - 1000, createdAt: now - 1000, usageCount: 0, lastUsedAt: null, origin: "import", aiNote: "",
++      deletedAt: null, importedAt: now - 1000, createdAt: now - 1000, usageCount: 0, lastUsedAt: null, origin: "import", organizeNote: "",
+     },
+   ],
+   proposals: [],
+-  settings: { ai: { enabled: false, baseUrl: "", model: "", vision: true, batchSize: 12, timeoutMs: 120000, hasApiKey: false }, copyMode: "image", cardSize: 150, autoBackup: true, quickAlwaysOnTop: false },
++  settings: { copyMode: "image", cardSize: 150, autoBackup: true, quickAlwaysOnTop: false },
+   meta: { lastBackupAt: 0, lastImportAt: now },
+   historyCount: 0,
+ };
+diff --git a/a/scripts/smoke.mjs b/b/scripts/smoke.mjs
+index 017e839..d3a5c34 100644
+--- a/a/scripts/smoke.mjs
++++ b/b/scripts/smoke.mjs
+@@ -267,30 +267,6 @@ await clickText("设置");
+ await waitFor("!!document.querySelector('.settings-view')", "设置页");
+ await screenshot("08-settings.png");
+ 
+-if (process.env.MOCK_AI_BASE) {
+-  console.log("配置模拟 AI 服务…");
+-  await cdp.evaluate(
+-    "window.__TAURI_INTERNALS__.invoke('save_settings', { patch: { ai: { enabled: true, baseUrl: " +
+-      JSON.stringify(process.env.MOCK_AI_BASE) +
+-      ", model: 'mock-vision', apiKey: 'test-key', vision: true, batchSize: 12 } } })",
+-  );
+-  await cdp.evaluate("location.reload()");
+-  await waitFor("!!document.querySelector('.app')", "AI 配置后的界面");
+-  await clickText("待整理");
+-  await waitFor("!!document.querySelector('.inbox-view')", "待整理区");
+-  await clickText("AI 整理");
+-  await waitFor("document.body.innerText.includes('AI 建议')", "AI 整理建议", 40000);
+-  check("AI 整理生成提案", true);
+-  await screenshot("09-ai-proposal.png");
+-  await clickText("应用", ".proposal-card .button.primary");
+-  await waitFor("document.body.innerText.includes('已应用')", "AI 应用结果", 15000);
+-  const aiState = await cdp.evaluate("window.__TAURI_INTERNALS__.invoke('get_state')");
+-  const aiGroup = (aiState.groups ?? []).some((group) => group.name === "AI 测试");
+-  const aiNote = (aiState.items ?? []).some((item) => typeof item.aiNote === "string" && item.aiNote.startsWith("AI："));
+-  check("AI 建议写入分组与留痕", aiGroup && aiNote, "分组 " + aiGroup + "，留痕 " + aiNote);
+-  await screenshot("10-ai-applied.png");
+-}
+-
+ console.log("检查页面控制台错误…");
+ check("无未捕获的前端异常", consoleErrors.length === 0, consoleErrors.slice(0, 3).join(" | "));
+ 
+diff --git a/a/scripts/ui-smoke.mjs b/b/scripts/ui-smoke.mjs
+index a00b008..c125919 100644
+--- a/a/scripts/ui-smoke.mjs
++++ b/b/scripts/ui-smoke.mjs
+@@ -13,18 +13,12 @@ async function loadMockState() {
+       return {
+         categories: library.categories,
+         groups: library.groups,
+-        items: library.items,
++        items: library.items.map((item) => ({
++          ...item,
++          organizeNote: item.organizeNote ?? item.aiNote ?? "",
++        })),
+         proposals: library.proposals ?? [],
+         settings: {
+-          ai: {
+-            enabled: false,
+-            baseUrl: "https://api.openai.com/v1",
+-            model: "gpt-4o-mini",
+-            vision: true,
+-            batchSize: 12,
+-            timeoutMs: 120000,
+-            hasApiKey: false,
+-          },
+           copyMode: "image",
+           cardSize: 150,
+           autoBackup: true,
+@@ -68,7 +62,7 @@ async function loadMockState() {
+         usageCount: 2,
+         lastUsedAt: at,
+         origin: "import",
+-        aiNote: "",
++        organizeNote: "",
+       },
+       {
+         id: "item_b",
+@@ -94,20 +88,11 @@ async function loadMockState() {
+         usageCount: 0,
+         lastUsedAt: null,
+         origin: "import",
+-        aiNote: "",
++        organizeNote: "",
+       },
+     ],
+     proposals: [],
+     settings: {
+-      ai: {
+-        enabled: false,
+-        baseUrl: "https://api.openai.com/v1",
+-        model: "gpt-4o-mini",
+-        vision: true,
+-        batchSize: 12,
+-        timeoutMs: 120000,
+-        hasApiKey: false,
+-      },
+       copyMode: "image",
+       cardSize: 150,
+       autoBackup: true,
+@@ -228,10 +213,6 @@ const internals = {
+           version: "0.1.0",
+           platform: "windows",
+           dataDir: "C:\\mock\\data",
+-          aiPresets: [
+-            { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini", vision: true },
+-            { id: "custom", label: "自定义 OpenAI 兼容服务", baseUrl: "", model: "", vision: true },
+-          ],
+         };
+       case "get_history":
+         return history;
+@@ -387,6 +368,8 @@ try {
+     clickByText("待整理");
+     await waitFor(() => window.document.querySelector(".inbox-view"), "待整理页");
+     check("切换到待整理区", true);
++    const inboxText = window.document.querySelector(".inbox-view")?.textContent ?? "";
++    check("待整理区无 AI 入口", !inboxText.includes("AI"), inboxText.includes("AI") ? "仍包含 AI 文案" : "");
+ 
+     if (pendingProposal) {
+       clickByText("整理建议");
+@@ -434,25 +417,9 @@ try {
+ 
+     clickByText("设置");
+     await waitFor(() => window.document.querySelector(".settings-view"), "设置页");
+-    check("设置页渲染", Boolean(window.document.querySelector(".settings-view")?.textContent?.includes("AI 整理")));
+-    const presetTrigger = window.document.querySelector(".settings-view .select-trigger");
+-    check("设置预设为自绘下拉", Boolean(presetTrigger) && presetTrigger.tagName === "BUTTON");
+-    presetTrigger?.dispatchEvent(new window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+-    await waitFor(() => window.document.querySelector(".select-menu"), "设置预设下拉浮层");
+-    presetTrigger?.dispatchEvent(new window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+-    await sleep(40);
+-    presetTrigger?.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+-    await waitFor(() => !window.document.querySelector(".select-menu"), "键盘选择后关闭");
+-    check(
+-      "下拉键盘可选",
+-      window.document.querySelector(".settings-view .select-trigger .select-value")?.textContent === "OpenAI",
+-      window.document.querySelector(".settings-view .select-trigger .select-value")?.textContent ?? "",
+-    );
+-    presetTrigger?.click();
+-    await waitFor(() => window.document.querySelector(".select-menu"), "再次打开设置预设");
+-    window.document.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+-    await waitFor(() => !window.document.querySelector(".select-menu"), "Esc 关闭下拉");
+-    check("Esc 关闭下拉", window.document.activeElement === presetTrigger);
++    const settingsText = window.document.querySelector(".settings-view")?.textContent ?? "";
++    check("设置页渲染", settingsText.includes("快速复制") && settingsText.includes("备份"));
++    check("设置页无 AI 配置", !settingsText.includes("AI"), settingsText.includes("AI") ? "仍包含 AI 文案" : "");
+   }
+   const relevantErrors = errors.filter((message) => !message.includes("Not implemented: HTMLCanvasElement"));
+   check("无前端运行时异常", relevantErrors.length === 0, relevantErrors.slice(0, 3).join(" | "));
+diff --git a/a/src/App.tsx b/b/src/App.tsx
+index 31dc9d6..7d955d9 100644
+--- a/a/src/App.tsx
++++ b/b/src/App.tsx
+@@ -160,7 +160,7 @@ export default function App() {
+       rows = rows.filter((item) => {
+         const categoryName = item.categoryId ? categoriesById.get(item.categoryId)?.name ?? "" : "";
+         const groupNames = item.groupIds.map((id) => groupsById.get(id)?.name ?? "").join(" ");
+-        return [item.name, item.note, item.tags.join(" "), item.aiNote, categoryName, groupNames]
++        return [item.name, item.note, item.tags.join(" "), item.organizeNote, categoryName, groupNames]
+           .join(" ")
+           .toLowerCase()
+           .includes(needle);
+diff --git a/a/src/api.ts b/b/src/api.ts
+index c91218c..e5ea30f 100644
+--- a/a/src/api.ts
++++ b/b/src/api.ts
+@@ -1,6 +1,5 @@
+ import { invoke } from "@tauri-apps/api/core";
+ import type {
+-  AiProposeResult,
+   ApplyResult,
+   ApiError,
+   BackupInfo,
+@@ -60,7 +59,6 @@ export const api = {
+     call<StickerGroup>("update_group", { id, name, color, note }),
+   deleteGroup: (id: string) => call<number>("delete_group", { id }),
+   proposeRules: (ids?: string[]) => call<Proposal>("propose_rules", { ids }),
+-  proposeAi: (ids?: string[]) => call<AiProposeResult>("propose_ai", { ids }),
+   updateProposal: (id: string, entries: unknown[]) => call<Proposal>("update_proposal", { id, entries }),
+   applyProposal: (id: string, entryIds?: string[]) => call<ApplyResult>("apply_proposal", { id, entryIds }),
+   dismissProposal: (id: string) => call<Proposal>("dismiss_proposal", { id }),
+@@ -77,7 +75,6 @@ export const api = {
+   showQuick: () => call<void>("show_quick"),
+   setQuickAlwaysOnTop: (value: boolean) => call<boolean>("set_quick_always_on_top", { value }),
+   saveSettings: (patch: Record<string, unknown>) => call<SettingsView>("save_settings", { patch }),
+-  testAi: (overrides?: Record<string, unknown>) => call<string>("test_ai", { overrides }),
+ };
+ 
+ export function mediaUrl(kind: "image" | "thumb", sha256: string): string {
+diff --git a/a/src/components/BackupView.tsx b/b/src/components/BackupView.tsx
+index de43805..43bdd28 100644
+--- a/a/src/components/BackupView.tsx
++++ b/b/src/components/BackupView.tsx
+@@ -134,7 +134,7 @@ export function BackupView(props: BackupViewProps) {
+           </p>
+           <ul className="backup-points">
+             <li>包含原图与缩略图，恢复后可直接使用</li>
+-            <li>不包含 AI API Key（已脱敏）</li>
++            <li>只包含本机素材库数据，不含账号或密钥</li>
+             <li>默认每天自动备份一次，最多保留 10 份</li>
+           </ul>
+           <button className="button primary wide" onClick={exportBackup} disabled={busy !== null}>
+diff --git a/a/src/components/DetailDrawer.tsx b/b/src/components/DetailDrawer.tsx
+index f31707e..e8084b6 100644
+--- a/a/src/components/DetailDrawer.tsx
++++ b/b/src/components/DetailDrawer.tsx
+@@ -205,10 +205,10 @@ export function DetailDrawer(props: DetailDrawerProps) {
+         </label>
+       </div>
+ 
+-      {item.aiNote && (
+-        <div className="ai-note">
+-          <Icon name="sparkles" size={14} />
+-          <span>{item.aiNote}</span>
++      {item.organizeNote && (
++        <div className="organize-note">
++          <Icon name="wand" size={14} />
++          <span>{item.organizeNote}</span>
+         </div>
+       )}
+ 
+diff --git a/a/src/components/HistoryView.tsx b/b/src/components/HistoryView.tsx
+index c350dea..6319919 100644
+--- a/a/src/components/HistoryView.tsx
++++ b/b/src/components/HistoryView.tsx
+@@ -19,7 +19,7 @@ const FILTERS: Array<{ id: string; label: string; types: string[] }> = [
+   { id: "delete", label: "删除", types: ["items.delete", "items.restore"] },
+   { id: "catalog", label: "分类分组", types: ["catalog.createCategory", "catalog.updateCategory", "catalog.deleteCategory", "catalog.createGroup", "catalog.updateGroup", "catalog.deleteGroup"] },
+   { id: "backup", label: "备份", types: ["backup.export", "backup.import", "backup.delete"] },
+-  { id: "ai", label: "建议与设置", types: ["proposal.create", "settings.update"] },
++  { id: "proposal", label: "建议与设置", types: ["proposal.create", "settings.update"] },
+ ];
+ 
+ const TYPE_ICON: Record<string, IconName> = {
+@@ -44,7 +44,7 @@ const TYPE_ICON: Record<string, IconName> = {
+ 
+ const ACTOR_LABEL: Record<string, string> = {
+   user: "我",
+-  ai: "AI",
++  ai: "历史",
+   rules: "规则",
+   system: "系统",
+ };
+diff --git a/a/src/components/InboxView.tsx b/b/src/components/InboxView.tsx
+index e474c5a..21d0521 100644
+--- a/a/src/components/InboxView.tsx
++++ b/b/src/components/InboxView.tsx
+@@ -37,9 +37,8 @@ export function InboxView(props: InboxViewProps) {
+   );
+   const pendingProposals = state.proposals.filter((proposal) => proposal.status === "pending");
+   const [tab, setTab] = useState<"items" | "proposals">("items");
+-  const [busy, setBusy] = useState<"rules" | "ai" | null>(null);
++  const [busy, setBusy] = useState<"rules" | null>(null);
+   const [applying, setApplying] = useState<string | null>(null);
+-  const [remaining, setRemaining] = useState(0);
+ 
+   const selectedIds = props.selection.size ? [...props.selection] : undefined;
+   const scopeLabel = selectedIds ? `（选中 ${selectedIds.length}）` : "";
+@@ -59,31 +58,6 @@ export function InboxView(props: InboxViewProps) {
+     }
+   };
+ 
+-  const runAi = async () => {
+-    if (busy) return;
+-    if (!state.settings.ai.enabled) {
+-      props.notify("AI 整理还没有开启，请先到设置中配置模型", { kind: "info" });
+-      return;
+-    }
+-    setBusy("ai");
+-    try {
+-      const result = await api.proposeAi(selectedIds);
+-      setRemaining(result.remaining);
+-      await props.refresh();
+-      setTab("proposals");
+-      props.notify(
+-        result.remaining > 0
+-          ? `AI 已整理 ${result.requested} 张，另有 ${result.remaining} 张可继续整理`
+-          : `AI 已整理 ${result.requested} 张，确认建议后生效`,
+-        { kind: "success" },
+-      );
+-    } catch (error) {
+-      props.notify((error as { message: string }).message, { kind: "error" });
+-    } finally {
+-      setBusy(null);
+-    }
+-  };
+-
+   const applyProposal = async (proposal: Proposal, entryIds?: string[]) => {
+     if (applying) return;
+     setApplying(proposal.id);
+@@ -142,14 +116,6 @@ export function InboxView(props: InboxViewProps) {
+           {busy === "rules" ? <Spinner /> : <Icon name="wand" size={16} />}
+           本地规则整理{scopeLabel}
+         </button>
+-        <button className="button ai icon-text" disabled={busy !== null || inboxItems.length === 0} onClick={runAi}>
+-          {busy === "ai" ? <Spinner /> : <Icon name="sparkles" size={16} />}
+-          AI 整理{scopeLabel}
+-        </button>
+-        {!state.settings.ai.enabled && (
+-          <span className="hint-inline">AI 未开启，可先使用本地规则，或在设置中接入模型</span>
+-        )}
+-        {remaining > 0 && <span className="hint-inline">还有 {remaining} 张未送入 AI，可再次点击继续</span>}
+       </div>
+ 
+       <div className="tabs">
+@@ -186,17 +152,14 @@ export function InboxView(props: InboxViewProps) {
+         )
+       ) : pendingProposals.length === 0 ? (
+         <EmptyState
+-          icon="sparkles"
++          icon="wand"
+           title="还没有待确认的整理建议"
+-          description="点击“本地规则整理”按文件名和画面特征归类，或配置 AI 后让它读懂画面。建议生成后不会直接改动素材。"
++          description="点击“本地规则整理”按文件名和画面特征生成建议。建议生成后不会直接改动素材。"
+           action={
+             <div className="empty-actions">
+               <button className="button soft" onClick={runRules} disabled={busy !== null || inboxItems.length === 0}>
+                 <Icon name="wand" size={15} />本地规则整理
+               </button>
+-              <button className="button ai" onClick={runAi} disabled={busy !== null || inboxItems.length === 0}>
+-                <Icon name="sparkles" size={15} />AI 整理
+-              </button>
+             </div>
+           }
+         />
+@@ -300,18 +263,15 @@ function ProposalCard({
+     <section className={classNames("proposal-card", readonly && "readonly")}>
+       <header className="proposal-head">
+         <div className="proposal-title">
+-          <span className={classNames("source-badge", proposal.kind)}>
+-            <Icon name={proposal.kind === "ai" ? "sparkles" : "wand"} size={13} />
+-            {proposal.kind === "ai" ? "AI 建议" : "规则建议"}
++          <span className={classNames("source-badge", proposal.kind === "ai" ? "legacy" : proposal.kind)}>
++            <Icon name={proposal.kind === "ai" ? "history" : "wand"} size={13} />
++            {proposal.kind === "ai" ? "历史建议" : "规则建议"}
+           </span>
+           <strong>{proposal.summary}</strong>
+           <span className="proposal-time">{formatRelative(proposal.createdAt)}</span>
+         </div>
+         <div className="proposal-right">
+           <span className={classNames("status-pill", proposal.status)}>{STATUS_LABEL[proposal.status] ?? proposal.status}</span>
+-          {proposal.kind === "ai" && typeof proposal.meta?.model === "string" && (
+-            <span className="model-name">{String(proposal.meta.model)}</span>
+-          )}
+         </div>
+       </header>
+ 
+diff --git a/a/src/components/SettingsView.tsx b/b/src/components/SettingsView.tsx
+index 3d648b7..5211d81 100644
+--- a/a/src/components/SettingsView.tsx
++++ b/b/src/components/SettingsView.tsx
+@@ -1,8 +1,7 @@
+ import { useEffect, useState } from "react";
+ import { api } from "../api";
+-import type { AiSettings, SettingsView as SettingsData, StateView, SystemInfo } from "../types";
++import type { SettingsView as SettingsData, StateView, SystemInfo } from "../types";
+ import { Icon, Switch } from "./ui";
+-import { Select } from "./Select";
+ 
+ interface SettingsViewProps {
+   state: StateView;
+@@ -13,88 +12,14 @@ interface SettingsViewProps {
+ 
+ export function SettingsView(props: SettingsViewProps) {
+   const { state, system } = props;
+-  const [ai, setAi] = useState<AiSettings>(state.settings.ai);
+-  const [apiKey, setApiKey] = useState("");
+-  const [showKey, setShowKey] = useState(false);
+-  const [preset, setPreset] = useState("custom");
+-  const [saving, setSaving] = useState(false);
+-  const [testing, setTesting] = useState(false);
+-  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+   const [copyMode, setCopyMode] = useState<SettingsData["copyMode"]>(state.settings.copyMode);
+   const [autoBackup, setAutoBackup] = useState(state.settings.autoBackup);
+ 
+   useEffect(() => {
+-    setAi(state.settings.ai);
+     setCopyMode(state.settings.copyMode);
+     setAutoBackup(state.settings.autoBackup);
+   }, [state.settings]);
+ 
+-  const updateAi = <K extends keyof AiSettings,>(key: K, value: AiSettings[K]) => {
+-    setAi((current) => ({ ...current, [key]: value }));
+-    if (key === "baseUrl" || key === "model" || key === "vision") setPreset("custom");
+-  };
+-
+-  const applyPreset = (id: string) => {
+-    setPreset(id);
+-    const found = system?.aiPresets.find((item) => item.id === id);
+-    if (!found || id === "custom") return;
+-    setAi((current) => ({ ...current, baseUrl: found.baseUrl, model: found.model, vision: found.vision }));
+-  };
+-
+-  const saveAi = async (extra?: Record<string, unknown>) => {
+-    setSaving(true);
+-    setTestResult(null);
+-    try {
+-      await api.saveSettings({
+-        ai: {
+-          enabled: ai.enabled,
+-          baseUrl: ai.baseUrl,
+-          model: ai.model,
+-          vision: ai.vision,
+-          batchSize: ai.batchSize,
+-          timeoutMs: ai.timeoutMs,
+-          ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+-          ...(extra ?? {}),
+-        },
+-      });
+-      setApiKey("");
+-      await props.refreshState();
+-      props.notify("AI 设置已保存", { kind: "success" });
+-    } catch (error) {
+-      props.notify((error as { message: string }).message, { kind: "error" });
+-    } finally {
+-      setSaving(false);
+-    }
+-  };
+-
+-  const clearKey = async () => {
+-    try {
+-      await api.saveSettings({ ai: { apiKey: "__CLEAR__" } });
+-      await props.refreshState();
+-      props.notify("已清除保存的 API Key", { kind: "info" });
+-    } catch (error) {
+-      props.notify((error as { message: string }).message, { kind: "error" });
+-    }
+-  };
+-
+-  const testConnection = async () => {
+-    setTesting(true);
+-    setTestResult(null);
+-    try {
+-      const message = await api.testAi({
+-        baseUrl: ai.baseUrl,
+-        model: ai.model,
+-        vision: ai.vision,
+-        ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+-      });
+-      setTestResult({ ok: true, message });
+-    } catch (error) {
+-      setTestResult({ ok: false, message: (error as { message: string }).message });
+-    } finally {
+-      setTesting(false);
+-    }
+-  };
+-
+   const saveImmediate = async (patch: Record<string, unknown>) => {
+     try {
+       await api.saveSettings(patch);
+@@ -109,125 +34,11 @@ export function SettingsView(props: SettingsViewProps) {
+       <header className="page-head">
+         <div>
+           <h2>设置</h2>
+-          <p>AI 整理、复制方式与数据位置。所有配置只保存在本机。</p>
++          <p>复制方式、备份与数据位置。所有配置只保存在本机。</p>
+         </div>
+         <span className="version-chip">v{system?.version ?? "0.1.0"}</span>
+       </header>
+ 
+-      <section className="settings-card">
+-        <header className="settings-head">
+-          <div>
+-            <h3>AI 整理</h3>
+-            <p>接入 OpenAI 兼容的视觉模型，让 AI 读懂画面并给出整理建议。建议只会进入待确认区。</p>
+-          </div>
+-          <Switch checked={ai.enabled} onChange={(value) => updateAi("enabled", value)} label="开启 AI 整理" />
+-        </header>
+-
+-        <div className="settings-form">
+-          <div className="field">
+-            <span>服务预设</span>
+-            <Select
+-              className="input"
+-              ariaLabel="服务预设"
+-              value={preset}
+-              options={(system?.aiPresets ?? []).map((item) => ({ value: item.id, label: item.label }))}
+-              onChange={applyPreset}
+-            />
+-          </div>
+-          <label className="field">
+-            <span>服务地址</span>
+-            <input
+-              className="input"
+-              value={ai.baseUrl}
+-              placeholder="https://api.openai.com/v1"
+-              onChange={(event) => updateAi("baseUrl", event.target.value)}
+-            />
+-          </label>
+-          <label className="field">
+-            <span>模型</span>
+-            <input
+-              className="input"
+-              value={ai.model}
+-              placeholder="gpt-4o-mini / qwen-vl-max / glm-4v-flash"
+-              onChange={(event) => updateAi("model", event.target.value)}
+-            />
+-          </label>
+-          <label className="field">
+-            <span>API Key</span>
+-            <div className="input-with-action">
+-              <input
+-                className="input"
+-                type={showKey ? "text" : "password"}
+-                value={apiKey}
+-                placeholder={ai.hasApiKey ? "已保存，输入新 Key 可替换" : "粘贴 API Key"}
+-                onChange={(event) => setApiKey(event.target.value)}
+-                autoComplete="off"
+-              />
+-              <button className="icon-button" onClick={() => setShowKey(!showKey)} aria-label={showKey ? "隐藏 Key" : "显示 Key"}>
+-                <Icon name="eye" size={15} />
+-              </button>
+-            </div>
+-            <span className="field-hint">
+-              Key 以明文保存在本机数据目录的 settings.json 中，请勿分享该文件。
+-              {ai.hasApiKey && (
+-                <button className="link-button" onClick={clearKey}>清除已保存的 Key</button>
+-              )}
+-            </span>
+-          </label>
+-
+-          <div className="settings-row">
+-            <label className="inline-switch">
+-              <Switch checked={ai.vision} onChange={(value) => updateAi("vision", value)} label="发送缩略图" />
+-              <span>
+-                发送缩略图给模型
+-                <em>关闭后只根据文件名与尺寸判断，适合纯文本模型</em>
+-              </span>
+-            </label>
+-          </div>
+-
+-          <div className="settings-row two">
+-            <label className="field compact">
+-              <span>每次送入 AI 的数量</span>
+-              <input
+-                className="input"
+-                type="number"
+-                min={1}
+-                max={24}
+-                value={ai.batchSize}
+-                onChange={(event) => updateAi("batchSize", Math.max(1, Math.min(24, Number(event.target.value) || 12)))}
+-              />
+-            </label>
+-            <label className="field compact">
+-              <span>超时（秒）</span>
+-              <input
+-                className="input"
+-                type="number"
+-                min={10}
+-                max={300}
+-                value={Math.round(ai.timeoutMs / 1000)}
+-                onChange={(event) => updateAi("timeoutMs", Math.max(10, Math.min(300, Number(event.target.value) || 120)) * 1000)}
+-              />
+-            </label>
+-          </div>
+-
+-          {testResult && (
+-            <div className={"test-result " + (testResult.ok ? "ok" : "fail")}>
+-              <Icon name={testResult.ok ? "check" : "warning"} size={15} />
+-              {testResult.message}
+-            </div>
+-          )}
+-
+-          <div className="settings-actions">
+-            <button className="button ghost" onClick={testConnection} disabled={testing || saving}>
+-              {testing ? "连接中…" : "测试连接"}
+-            </button>
+-            <button className="button primary" onClick={() => void saveAi()} disabled={saving || testing}>
+-              {saving ? "保存中…" : "保存 AI 设置"}
+-            </button>
+-          </div>
+-        </div>
+-      </section>
+-
+       <section className="settings-card">
+         <header className="settings-head">
+           <div>
+diff --git a/a/src/styles.css b/b/src/styles.css
+index a959993..5df7e26 100644
+--- a/a/src/styles.css
++++ b/b/src/styles.css
+@@ -740,16 +740,6 @@ kbd {
+   color: var(--accent-bright);
+ }
+ 
+-.button.ai {
+-  background: linear-gradient(135deg, rgba(167, 139, 250, 0.22), rgba(111, 159, 216, 0.18));
+-  border-color: rgba(167, 139, 250, 0.4);
+-  color: #d7c8ff;
+-}
+-
+-.button.ai:hover {
+-  background: linear-gradient(135deg, rgba(167, 139, 250, 0.32), rgba(111, 159, 216, 0.26));
+-}
+-
+ .button.danger {
+   background: rgba(239, 111, 81, 0.16);
+   color: #ff9f88;
+@@ -1351,19 +1341,24 @@ kbd {
+   background: rgba(106, 196, 154, 0.08);
+ }
+ 
+-.ai-note {
++.organize-note {
+   display: flex;
+   align-items: flex-start;
+   gap: 7px;
+   padding: 9px 10px;
+   border-radius: 9px;
+-  background: rgba(167, 139, 250, 0.08);
+-  border: 1px solid rgba(167, 139, 250, 0.2);
+-  color: #cbbcff;
++  background: rgba(247, 178, 59, 0.06);
++  border: 1px solid rgba(247, 178, 59, 0.18);
++  color: var(--muted);
+   font-size: 11.5px;
+   line-height: 1.6;
+ }
+ 
++.organize-note .icon {
++  margin-top: 1px;
++  color: var(--accent);
++}
++
+ .meta-grid {
+   display: grid;
+   grid-template-columns: 1fr 1fr;
+@@ -1593,11 +1588,6 @@ kbd {
+   flex-wrap: wrap;
+ }
+ 
+-.hint-inline {
+-  font-size: 11.5px;
+-  color: var(--muted-2);
+-}
+-
+ .tabs {
+   display: flex;
+   gap: 4px;
+@@ -1684,10 +1674,10 @@ kbd {
+   border: 1px solid rgba(247, 178, 59, 0.25);
+ }
+ 
+-.source-badge.ai {
+-  background: rgba(167, 139, 250, 0.12);
+-  color: #c9b7ff;
+-  border-color: rgba(167, 139, 250, 0.3);
++.source-badge.legacy {
++  background: rgba(255, 255, 255, 0.05);
++  color: var(--muted);
++  border-color: var(--line);
+ }
+ 
+ .proposal-time {
+@@ -1728,15 +1718,6 @@ kbd {
+   color: var(--muted-2);
+ }
+ 
+-.model-name {
+-  font-size: 10px;
+-  color: var(--muted-2);
+-  max-width: 130px;
+-  overflow: hidden;
+-  text-overflow: ellipsis;
+-  white-space: nowrap;
+-}
+-
+ .proposal-entries {
+   display: flex;
+   flex-direction: column;
+@@ -2489,12 +2470,6 @@ kbd {
+   max-width: 620px;
+ }
+ 
+-.settings-form {
+-  display: flex;
+-  flex-direction: column;
+-  gap: 12px;
+-}
+-
+ .settings-row {
+   display: flex;
+   align-items: center;
+@@ -2508,57 +2483,10 @@ kbd {
+   gap: 12px;
+ }
+ 
+-.inline-switch {
+-  display: flex;
+-  align-items: flex-start;
+-  gap: 10px;
+-  font-size: 12.5px;
+-  color: var(--text);
+-  cursor: pointer;
+-}
+-
+-.inline-switch em {
+-  display: block;
+-  margin-top: 3px;
+-  font-style: normal;
+-  font-size: 11px;
+-  color: var(--muted-2);
+-  line-height: 1.5;
+-}
+-
+ .field.compact {
+   gap: 6px;
+ }
+ 
+-.settings-actions {
+-  display: flex;
+-  justify-content: flex-end;
+-  gap: 8px;
+-  padding-top: 2px;
+-}
+-
+-.test-result {
+-  display: flex;
+-  align-items: center;
+-  gap: 8px;
+-  padding: 8px 10px;
+-  border-radius: 8px;
+-  font-size: 11.5px;
+-  line-height: 1.5;
+-}
+-
+-.test-result.ok {
+-  color: var(--green);
+-  background: rgba(106, 196, 154, 0.08);
+-  border: 1px solid rgba(106, 196, 154, 0.22);
+-}
+-
+-.test-result.fail {
+-  color: #ff9d86;
+-  background: rgba(239, 111, 81, 0.08);
+-  border: 1px solid rgba(239, 111, 81, 0.22);
+-}
+-
+ .option-cards {
+   display: grid;
+   grid-template-columns: 1fr 1fr;
+diff --git a/a/src/types.ts b/b/src/types.ts
+index 0bfdb48..738be8c 100644
+--- a/a/src/types.ts
++++ b/b/src/types.ts
+@@ -41,7 +41,8 @@ export interface Sticker {
+   usageCount: number;
+   lastUsedAt: number | null;
+   origin: string;
+-  aiNote: string;
++  /** 整理说明；旧数据里的 aiNote 由后端别名兼容读取。 */
++  organizeNote: string;
+ }
+ 
+ export interface ProposalAction {
+@@ -70,6 +71,7 @@ export type ProposalStatus = "pending" | "applied" | "dismissed" | "reverted" |
+ 
+ export interface Proposal {
+   id: string;
++  /** "ai" 仅用于兼容旧建议数据，当前版本只生成 "rules"。 */
+   kind: "rules" | "ai";
+   status: ProposalStatus;
+   summary: string;
+@@ -93,7 +95,7 @@ export interface Snapshot {
+   favorite: boolean;
+   status: StickerStatus;
+   deleted: boolean;
+-  aiNote: string;
++  organizeNote: string;
+ }
+ 
+ export interface HistoryChange {
+@@ -106,6 +108,7 @@ export interface HistoryEntry {
+   id: string;
+   at: number;
+   type: string;
++  /** "ai" 仅用于显示旧记录。 */
+   actor: "user" | "ai" | "rules" | "system" | string;
+   summary: string;
+   undoable: boolean;
+@@ -123,38 +126,17 @@ export interface HistoryPage {
+   items: HistoryItemView[];
+ }
+ 
+-export interface AiSettings {
+-  enabled: boolean;
+-  baseUrl: string;
+-  model: string;
+-  apiKey: string;
+-  vision: boolean;
+-  batchSize: number;
+-  timeoutMs: number;
+-  hasApiKey: boolean;
+-}
+-
+ export interface SettingsView {
+-  ai: AiSettings;
+   copyMode: "image" | "file";
+   cardSize: number;
+   autoBackup: boolean;
+   quickAlwaysOnTop: boolean;
+ }
+ 
+-export interface AiPreset {
+-  id: string;
+-  label: string;
+-  baseUrl: string;
+-  model: string;
+-  vision: boolean;
+-}
+-
+ export interface SystemInfo {
+   version: string;
+   platform: string;
+   dataDir: string;
+-  aiPresets: AiPreset[];
+ }
+ 
+ export interface LibraryMeta {
+@@ -196,14 +178,6 @@ export interface ImportBackupReport {
+   historyEntryId: string | null;
+ }
+ 
+-export interface AiProposeResult {
+-  proposal: Proposal;
+-  requested: number;
+-  remaining: number;
+-  model: string;
+-  usage: unknown;
+-}
+-
+ export interface RevertResult {
+   undone: boolean;
+   entryId: string;
+diff --git a/a/src-tauri/Cargo.toml b/b/src-tauri/Cargo.toml
+index 2086265..b2c5ed5 100644
+--- a/a/src-tauri/Cargo.toml
++++ b/b/src-tauri/Cargo.toml
+@@ -6,7 +6,6 @@ edition = "2024"
+ [dependencies]
+ base64 = "0.23.1"
+ image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp"] }
+-reqwest = { version = "0.13.5", features = ["json"] }
+ serde = { version = "1.0.229", features = ["derive"] }
+ serde_json = "1.0.154"
+ sha2 = "0.11.1"
+@@ -25,9 +24,6 @@ custom-protocol = ["tauri/custom-protocol"]
+ [build-dependencies]
+ tauri-build = "2.7.5"
+ 
+-[dev-dependencies]
+-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+-
+ [target."cfg(windows)".dependencies]
+ windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_DataExchange", "Win32_System_Memory", "Win32_System_Com", "Win32_UI_WindowsAndMessaging"] }
+ [lib]
+diff --git a/a/src-tauri/src/ai.rs b/a/src-tauri/src/ai.rs
+deleted file mode 100644
+index 1004bac..0000000
+--- a/a/src-tauri/src/ai.rs
++++ /dev/null
+@@ -1,523 +0,0 @@
+-use std::time::Duration;
+-
+-use serde_json::{json, Value};
+-
+-use crate::models::*;
+-use crate::rules::DraftEntry;
+-use crate::util::{clean_text, unique_strings};
+-
+-const SYSTEM_PROMPT: &str = "你是一名表情包整理助手。用户会把待整理的表情包缩略图和文件名交给你。\n请为每个素材建议：一个主分类、0-3 个分组、2-5 个中文标签，并可选地把文件名改写得更易读。\n优先使用用户已有的分类和分组；只有确实没有合适选项时，才提出新的分类（最多 1 个）或新分组（最多 2 个），名称不超过 8 个字。\n标签要短（不超过 6 个字），描述情绪、用途或画面（例如：大笑、无语、猫、加班、动图）。\n文件名改写只做轻微清理，不要臆造无关内容；拿不准就留空。\n只输出 JSON，不要输出 Markdown 代码块或解释。JSON 结构：\n{\"items\":[{\"id\":\"素材 id\",\"category\":\"已有分类名或空字符串\",\"newCategory\":\"新分类名或空字符串\",\"groups\":[\"已有分组名\"],\"newGroups\":[\"新分组名\"],\"tags\":[\"标签\"],\"name\":\"建议文件名或空字符串\",\"confidence\":0.0,\"reason\":\"不超过 30 字的中文理由\"}]}";
+-
+-pub fn presets() -> Vec<AiPreset> {
+-    [
+-        ("openai", "OpenAI", "https://api.openai.com/v1", "gpt-4o-mini", true),
+-        (
+-            "qwen",
+-            "通义千问（兼容模式）",
+-            "https://dashscope.aliyuncs.com/compatible-mode/v1",
+-            "qwen-vl-max",
+-            true,
+-        ),
+-        ("zhipu", "智谱 GLM", "https://open.bigmodel.cn/api/paas/v4", "glm-4v-flash", true),
+-        (
+-            "deepseek",
+-            "DeepSeek（文本模型）",
+-            "https://api.deepseek.com/v1",
+-            "deepseek-chat",
+-            false,
+-        ),
+-        ("custom", "自定义 OpenAI 兼容服务", "", "", true),
+-    ]
+-    .iter()
+-    .map(|(id, label, base_url, model, vision)| AiPreset {
+-        id: id.to_string(),
+-        label: label.to_string(),
+-        base_url: base_url.to_string(),
+-        model: model.to_string(),
+-        vision: *vision,
+-    })
+-    .collect()
+-}
+-
+-pub struct AiOutcome {
+-    pub content: String,
+-    pub model: String,
+-    pub usage: Value,
+-}
+-
+-pub fn build_messages(
+-    categories: &[Category],
+-    groups: &[Group],
+-    items: &[(Sticker, String)],
+-    vision: bool,
+-) -> Value {
+-    let category_list = if categories.is_empty() {
+-        "（暂无）".to_string()
+-    } else {
+-        categories
+-            .iter()
+-            .map(|category| category.name.clone())
+-            .collect::<Vec<_>>()
+-            .join("、")
+-    };
+-    let group_list = if groups.is_empty() {
+-        "（暂无）".to_string()
+-    } else {
+-        groups.iter().map(|group| group.name.clone()).collect::<Vec<_>>().join("、")
+-    };
+-    let mut lines = vec![
+-        format!("请整理以下 {} 个表情包素材。", items.len()),
+-        format!("现有分类：{}", category_list),
+-        format!("现有分组：{}", group_list),
+-        "素材清单：".to_string(),
+-    ];
+-    for (index, (item, _)) in items.iter().enumerate() {
+-        let mut bits = vec![
+-            format!("{}. id={}", index + 1, item.id),
+-            format!("文件名={}", item.name),
+-            format!("尺寸={}x{}", item.width, item.height),
+-            format!("格式={}", item.ext),
+-        ];
+-        if item.category_id.is_some() {
+-            bits.push("已有分类".to_string());
+-        }
+-        if !item.tags.is_empty() {
+-            bits.push(format!("已有标签={}", item.tags.join("/")));
+-        }
+-        lines.push(bits.join("｜"));
+-    }
+-    lines.push("要求：只返回 items 数组，id 必须原样使用；没有把握的字段用空字符串或空数组。".to_string());
+-    let intro = lines.join("\n");
+-
+-    let has_images = vision && items.iter().any(|(_, image)| !image.is_empty());
+-    if !has_images {
+-        return json!([
+-            { "role": "system", "content": SYSTEM_PROMPT },
+-            { "role": "user", "content": intro }
+-        ]);
+-    }
+-    let mut content: Vec<Value> = vec![json!({ "type": "text", "text": intro })];
+-    for (item, image) in items {
+-        if image.is_empty() {
+-            continue;
+-        }
+-        content.push(json!({ "type": "text", "text": format!("素材 id={} 的缩略图：", item.id) }));
+-        content.push(json!({ "type": "image_url", "image_url": { "url": image } }));
+-    }
+-    json!([
+-        { "role": "system", "content": SYSTEM_PROMPT },
+-        { "role": "user", "content": content }
+-    ])
+-}
+-
+-fn normalize_base_url(base_url: &str) -> Result<String, AppError> {
+-    let value = base_url.trim().trim_end_matches('/').to_string();
+-    if !value.starts_with("http://") && !value.starts_with("https://") {
+-        return Err(AppError::new("invalid_config", "AI 服务地址必须以 http:// 或 https:// 开头"));
+-    }
+-    Ok(value)
+-}
+-
+-fn http_error(status: u16, body: &str) -> AppError {
+-    let snippet: String = body.split_whitespace().collect::<Vec<_>>().join(" ");
+-    let snippet = snippet.chars().take(240).collect::<String>();
+-    match status {
+-        401 | 403 => AppError::new("ai_auth", format!("AI 服务鉴权失败，请检查 API Key（{}）", status)),
+-        429 => AppError::new("ai_rate_limit", "AI 服务限流或额度不足，请稍后再试"),
+-        _ => AppError::new(
+-            "ai_http",
+-            format!(
+-                "AI 服务返回错误 {}{}",
+-                status,
+-                if snippet.is_empty() {
+-                    String::new()
+-                } else {
+-                    format!("：{}", snippet)
+-                }
+-            ),
+-        ),
+-    }
+-}
+-
+-async fn send_chat(
+-    settings: &Settings,
+-    messages: &Value,
+-    json_mode: bool,
+-) -> Result<(Value, u16, String), AppError> {
+-    let mut body = json!({
+-        "model": settings.ai.model,
+-        "messages": messages,
+-        "temperature": 0.2,
+-        "max_tokens": 2400,
+-    });
+-    if json_mode {
+-        body["response_format"] = json!({ "type": "json_object" });
+-    }
+-    let client = reqwest::Client::builder()
+-        .timeout(Duration::from_millis(settings.ai.timeout_ms))
+-        .build()
+-        .map_err(|error| AppError::new("ai_client", format!("无法初始化网络客户端：{}", error)))?;
+-    let response = client
+-        .post(format!("{}/chat/completions", normalize_base_url(&settings.ai.base_url)?))
+-        .bearer_auth(&settings.ai.api_key)
+-        .json(&body)
+-        .send()
+-        .await
+-        .map_err(|error| {
+-            if error.is_timeout() {
+-                AppError::new(
+-                    "ai_timeout",
+-                    format!("AI 请求超时（{} 秒），请检查服务或调小批量", settings.ai.timeout_ms / 1000),
+-                )
+-            } else {
+-                AppError::new("ai_network", format!("AI 请求失败：{}", error))
+-            }
+-        })?;
+-    let status = response.status().as_u16();
+-    let text = response.text().await.unwrap_or_default();
+-    if !(200..300).contains(&status) {
+-        return Ok((Value::Null, status, text));
+-    }
+-    let value: Value = serde_json::from_str(&text)
+-        .map_err(|_| AppError::new("ai_parse", "AI 服务返回的内容不是合法 JSON"))?;
+-    Ok((value, status, text))
+-}
+-
+-pub async fn request_ai(
+-    settings: &Settings,
+-    categories: &[Category],
+-    groups: &[Group],
+-    items: &[(Sticker, String)],
+-) -> Result<AiOutcome, AppError> {
+-    if settings.ai.api_key.trim().is_empty() {
+-        return Err(AppError::new("ai_config", "还没有配置 AI API Key，请先在设置中填写"));
+-    }
+-    if settings.ai.model.trim().is_empty() {
+-        return Err(AppError::new("ai_config", "还没有配置 AI 模型名称"));
+-    }
+-    let messages = build_messages(categories, groups, items, settings.ai.vision);
+-    let mut outcome = send_chat(settings, &messages, true).await?;
+-    if outcome.1 == 400 {
+-        outcome = send_chat(settings, &messages, false).await?;
+-    }
+-    if !(200..300).contains(&outcome.1) {
+-        return Err(http_error(outcome.1, &outcome.2));
+-    }
+-    let payload = outcome.0;
+-    let message = payload
+-        .pointer("/choices/0/message")
+-        .ok_or_else(|| AppError::new("ai_parse", "AI 响应缺少 choices[0].message"))?;
+-    let content = match message.get("content") {
+-        Some(Value::String(text)) => text.clone(),
+-        Some(Value::Array(parts)) => parts
+-            .iter()
+-            .filter_map(|part| part.get("text").and_then(Value::as_str))
+-            .collect::<Vec<_>>()
+-            .join(""),
+-        _ => String::new(),
+-    };
+-    if content.trim().is_empty() {
+-        return Err(AppError::new("ai_parse", "AI 返回了空内容"));
+-    }
+-    Ok(AiOutcome {
+-        content,
+-        model: payload
+-            .get("model")
+-            .and_then(Value::as_str)
+-            .unwrap_or(&settings.ai.model)
+-            .to_string(),
+-        usage: payload.get("usage").cloned().unwrap_or(Value::Null),
+-    })
+-}
+-
+-pub async fn test_connection(settings: &Settings) -> Result<String, AppError> {
+-    if settings.ai.api_key.trim().is_empty() {
+-        return Err(AppError::new("ai_config", "请先填写 API Key"));
+-    }
+-    let messages = json!([
+-        { "role": "user", "content": "请只回复 OK" }
+-    ]);
+-    let mut fast = settings.clone();
+-    fast.ai.timeout_ms = settings.ai.timeout_ms.min(30_000);
+-    let outcome = send_chat(&fast, &messages, false).await?;
+-    if !(200..300).contains(&outcome.1) {
+-        return Err(http_error(outcome.1, &outcome.2));
+-    }
+-    let model = outcome
+-        .0
+-        .get("model")
+-        .and_then(Value::as_str)
+-        .unwrap_or(&settings.ai.model)
+-        .to_string();
+-    Ok(format!("连接成功，模型 {} 已响应", model))
+-}
+-
+-pub fn parse_ai_response(
+-    text: &str,
+-    items: &[Sticker],
+-    categories: &[Category],
+-    groups: &[Group],
+-) -> Result<Vec<DraftEntry>, AppError> {
+-    let value = extract_json(text)?;
+-    let list = if let Some(array) = value.as_array() {
+-        array.clone()
+-    } else if let Some(array) = value.get("items").and_then(Value::as_array) {
+-        array.clone()
+-    } else {
+-        return Err(AppError::new("ai_parse", "AI 返回的 JSON 缺少 items 数组"));
+-    };
+-    let mut seen: Vec<String> = Vec::new();
+-    let mut entries: Vec<DraftEntry> = Vec::new();
+-    for row in list {
+-        let id = row
+-            .get("id")
+-            .and_then(Value::as_str)
+-            .unwrap_or_default()
+-            .to_string();
+-        let Some(item) = items.iter().find(|item| item.id == id) else {
+-            continue;
+-        };
+-        if seen.contains(&id) {
+-            continue;
+-        }
+-        seen.push(id.clone());
+-        let mut action = Action::default();
+-        let raw_category = clean_text(
+-            row.get("category").and_then(Value::as_str).unwrap_or(""),
+-            24,
+-        );
+-        let raw_new = clean_text(
+-            row.get("newCategory").and_then(Value::as_str).unwrap_or(""),
+-            24,
+-        );
+-        if !raw_category.is_empty() {
+-            if let Some(existing) = category_match(categories, &raw_category) {
+-                if Some(existing.id.clone()) != item.category_id {
+-                    action.category_id = Some(existing.id.clone());
+-                }
+-            } else {
+-                action.new_category_name = if raw_new.is_empty() { raw_category } else { raw_new };
+-            }
+-        } else if !raw_new.is_empty() {
+-            action.new_category_name = raw_new;
+-        }
+-        if !action.new_category_name.is_empty() {
+-            if let Some(existing) = category_match(categories, &action.new_category_name) {
+-                if Some(existing.id.clone()) != item.category_id {
+-                    action.category_id = Some(existing.id.clone());
+-                }
+-                action.new_category_name.clear();
+-            }
+-        }
+-        let mut group_names: Vec<String> = Vec::new();
+-        for key in ["groups", "newGroups"] {
+-            if let Some(array) = row.get(key).and_then(Value::as_array) {
+-                for value in array {
+-                    if let Some(name) = value.as_str() {
+-                        group_names.push(name.to_string());
+-                    }
+-                }
+-            }
+-        }
+-        let group_names = unique_strings(&group_names, 24, 4);
+-        for name in group_names {
+-            if let Some(existing) = group_match(groups, &name) {
+-                if !item.group_ids.contains(&existing.id) && !action.add_group_ids.contains(&existing.id)
+-                {
+-                    action.add_group_ids.push(existing.id.clone());
+-                }
+-            } else if action.new_group_names.len() < 2 {
+-                action.new_group_names.push(name);
+-            }
+-        }
+-        if let Some(array) = row.get("tags").and_then(Value::as_array) {
+-            let tags: Vec<String> = array
+-                .iter()
+-                .filter_map(Value::as_str)
+-                .map(|value| value.to_string())
+-                .collect();
+-            action.add_tags = unique_strings(&tags, 16, 4)
+-                .into_iter()
+-                .filter(|tag| {
+-                    !item
+-                        .tags
+-                        .iter()
+-                        .any(|existing| existing.to_lowercase() == tag.to_lowercase())
+-                })
+-                .collect();
+-        }
+-        let suggested_name = clean_text(
+-            row.get("name").and_then(Value::as_str).unwrap_or(""),
+-            30,
+-        );
+-        if !suggested_name.is_empty() && suggested_name != item.name {
+-            action.name = suggested_name;
+-        }
+-        let confidence = row
+-            .get("confidence")
+-            .and_then(Value::as_f64)
+-            .unwrap_or(0.5)
+-            .clamp(0.0, 1.0);
+-        entries.push(DraftEntry {
+-            item_id: id,
+-            action,
+-            reason: clean_text(row.get("reason").and_then(Value::as_str).unwrap_or(""), 60),
+-            confidence,
+-            source: "ai".to_string(),
+-        });
+-    }
+-    Ok(entries)
+-}
+-
+-fn category_match<'a>(categories: &'a [Category], name: &str) -> Option<&'a Category> {
+-    let needle = name.trim().to_lowercase();
+-    categories
+-        .iter()
+-        .find(|category| category.name.to_lowercase() == needle)
+-}
+-
+-fn group_match<'a>(groups: &'a [Group], name: &str) -> Option<&'a Group> {
+-    let needle = name.trim().to_lowercase();
+-    groups.iter().find(|group| group.name.to_lowercase() == needle)
+-}
+-
+-fn extract_json(text: &str) -> Result<Value, AppError> {
+-    let raw = text
+-        .trim()
+-        .trim_start_matches(['\u{feff}', '\u{60}'])
+-        .trim_start_matches("json")
+-        .trim_end_matches('\u{60}')
+-        .trim();
+-    if let Ok(value) = serde_json::from_str::<Value>(raw) {
+-        return Ok(value);
+-    }
+-    if let (Some(start), Some(end)) = (raw.find('{'), raw.rfind('}')) {
+-        if end > start {
+-            if let Ok(value) = serde_json::from_str::<Value>(&raw[start..=end]) {
+-                return Ok(value);
+-            }
+-        }
+-    }
+-    if let (Some(start), Some(end)) = (raw.find('['), raw.rfind(']')) {
+-        if end > start {
+-            if let Ok(value) = serde_json::from_str::<Value>(&raw[start..=end]) {
+-                return Ok(value);
+-            }
+-        }
+-    }
+-    Err(AppError::new(
+-        "ai_parse",
+-        "AI 返回的内容无法解析为 JSON，请检查模型是否支持 JSON 输出",
+-    ))
+-}
+-
+-#[cfg(test)]
+-mod tests {
+-    use super::*;
+-    use crate::models::default_categories;
+-
+-    fn sticker(id: &str, name: &str) -> Sticker {
+-        let mut item = Sticker::default();
+-        item.id = id.to_string();
+-        item.name = name.to_string();
+-        item.sha256 = "a".repeat(64);
+-        item
+-    }
+-
+-    #[test]
+-    fn parses_known_category_and_new_group() {
+-        let categories = default_categories();
+-        let groups = vec![Group {
+-            id: "grp_1".to_string(),
+-            name: "斗图".to_string(),
+-            ..Group::default()
+-        }];
+-        let items = vec![sticker("item_1", "猫猫头")];
+-        let text = r#"{"items":[{"id":"item_1","category":"可爱","groups":["斗图"],"newGroups":["猫猫"],"tags":["猫","可爱"],"name":"猫猫头 1","confidence":0.8,"reason":"画面是猫"}]}"#;
+-        let entries = parse_ai_response(text, &items, &categories, &groups).unwrap();
+-        assert_eq!(entries.len(), 1);
+-        assert_eq!(entries[0].action.category_id.as_deref(), Some("cat_cute"));
+-        assert!(entries[0].action.add_group_ids.contains(&"grp_1".to_string()));
+-        assert!(entries[0].action.new_group_names.contains(&"猫猫".to_string()));
+-        assert!(entries[0].action.add_tags.contains(&"猫".to_string()));
+-    }
+-
+-    #[tokio::test]
+-    async fn talks_to_openai_compatible_service() {
+-        use std::io::{Read, Write};
+-        use std::net::TcpListener;
+-
+-        let listener = TcpListener::bind("127.0.0.1:0").expect("bind mock server");
+-        let port = listener.local_addr().expect("addr").port();
+-        let handle = std::thread::spawn(move || {
+-            let (mut stream, _) = listener.accept().expect("accept");
+-            stream
+-                .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+-                .ok();
+-            let mut buffer = Vec::new();
+-            let mut chunk = [0u8; 4096];
+-            loop {
+-                match stream.read(&mut chunk) {
+-                    Ok(0) => break,
+-                    Ok(size) => {
+-                        buffer.extend_from_slice(&chunk[..size]);
+-                        if buffer.windows(2).any(|window| window == b"}}") {
+-                            break;
+-                        }
+-                    }
+-                    Err(_) => break,
+-                }
+-            }
+-            let request = String::from_utf8_lossy(&buffer).to_string();
+-            assert!(request.contains("/chat/completions"), "请求路径不正确");
+-            assert!(request.contains("Bearer test-key"), "请求未携带鉴权头");
+-            let content = r#"{"items":[{"id":"item_1","category":"可爱","tags":["猫"],"confidence":0.9,"reason":"mock 服务"}]}"#;
+-            let body = serde_json::json!({
+-                "model": "mock-vision",
+-                "choices": [{ "message": { "content": content } }],
+-                "usage": { "total_tokens": 10 }
+-            })
+-            .to_string();
+-            let response = format!(
+-                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+-                body.len(),
+-                body
+-            );
+-            stream.write_all(response.as_bytes()).expect("write response");
+-        });
+-
+-        let settings = Settings {
+-            ai: AiConfig {
+-                enabled: true,
+-                base_url: format!("http://127.0.0.1:{}/v1", port),
+-                model: "mock-vision".to_string(),
+-                api_key: "test-key".to_string(),
+-                vision: false,
+-                ..AiConfig::default()
+-            },
+-            ..Settings::default()
+-        };
+-        let categories = default_categories();
+-        let items = vec![(sticker("item_1", "大叫猫"), String::new())];
+-        let outcome = request_ai(&settings, &categories, &[], &items)
+-            .await
+-            .expect("AI 请求应当成功");
+-        assert!(outcome.content.contains("items"));
+-        assert_eq!(outcome.model, "mock-vision");
+-        let parsed = parse_ai_response(&outcome.content, &items.iter().map(|(item, _)| item.clone()).collect::<Vec<_>>(), &categories, &[])
+-            .expect("解析响应");
+-        assert_eq!(parsed.len(), 1);
+-        assert_eq!(parsed[0].action.category_id.as_deref(), Some("cat_cute"));
+-        handle.join().expect("mock server thread");
+-    }
+-
+-    #[test]
+-    fn tolerates_code_fences() {
+-        let categories = default_categories();
+-        let items = vec![sticker("item_1", "x")];
+-        let fence = "\u{60}\u{60}\u{60}";
+-        let text = format!("{}json\n{{\"items\":[{{\"id\":\"item_1\",\"newCategory\":\"测试\",\"tags\":[]}}]}}\n{}", fence, fence);
+-        let entries = parse_ai_response(&text, &items, &categories, &[]).unwrap();
+-        assert_eq!(entries[0].action.new_category_name, "测试");
+-    }
+-}
+diff --git a/a/src-tauri/src/backup.rs b/b/src-tauri/src/backup.rs
+index 857e57f..e820fe7 100644
+--- a/a/src-tauri/src/backup.rs
++++ b/b/src-tauri/src/backup.rs
+@@ -79,14 +79,7 @@ pub fn export_backup(store: &mut Store) -> Result<BackupInfo, AppError> {
+     let settings_value = json!({
+         "copyMode": store.settings.copy_mode,
+         "cardSize": store.settings.card_size,
+-        "autoBackup": store.settings.auto_backup,
+-        "ai": {
+-            "baseUrl": store.settings.ai.base_url,
+-            "model": store.settings.ai.model,
+-            "vision": store.settings.ai.vision,
+-            "batchSize": store.settings.ai.batch_size,
+-            "apiKey": if store.settings.ai.api_key.is_empty() { "" } else { "[REDACTED_SECRET]" }
+-        }
++        "autoBackup": store.settings.auto_backup
+     });
+ 
+     let file = File::create(&tmp_path)?;
+@@ -303,7 +296,7 @@ pub fn import_backup(store: &mut Store, path: &Path) -> Result<ImportReport, App
+             usage_count: source.usage_count,
+             last_used_at: source.last_used_at,
+             origin: "backup".to_string(),
+-            ai_note: source.ai_note.clone(),
++            organize_note: source.organize_note.clone(),
+         };
+         if item.name.is_empty() {
+             item.name = "恢复的表情".to_string();
+diff --git a/a/src-tauri/src/commands.rs b/b/src-tauri/src/commands.rs
+index 71afbc6..d445bfe 100644
+--- a/a/src-tauri/src/commands.rs
++++ b/b/src-tauri/src/commands.rs
+@@ -7,7 +7,6 @@ use serde::Serialize;
+ use serde_json::{json, Value};
+ use tauri::{AppHandle, Manager, State};
+ 
+-use crate::ai;
+ use crate::backup;
+ use crate::clipboard;
+ use crate::history::{is_supported, revert, snapshot};
+@@ -48,16 +47,6 @@ pub struct HistoryPage {
+     pub items: Vec<HistoryItemView>,
+ }
+ 
+-#[derive(Debug, Clone, Serialize)]
+-#[serde(rename_all = "camelCase")]
+-pub struct AiProposeResult {
+-    pub proposal: Proposal,
+-    pub requested: usize,
+-    pub remaining: usize,
+-    pub model: String,
+-    pub usage: Value,
+-}
+-
+ #[derive(Debug, Clone, Serialize)]
+ #[serde(rename_all = "camelCase")]
+ pub struct CopyResult {
+@@ -77,7 +66,6 @@ pub fn get_system(state: State<'_, AppState>) -> ApiResult<SystemInfo> {
+         version: env!("CARGO_PKG_VERSION").to_string(),
+         platform: std::env::consts::OS.to_string(),
+         data_dir: store.data_dir.to_string_lossy().to_string(),
+-        ai_presets: ai::presets(),
+     })
+ }
+ 
+@@ -617,92 +605,13 @@ pub fn propose_rules(
+     if entries.is_empty() {
+         return Err(AppError::new(
+             "empty",
+-            "这些素材没有可识别的特征，可以手动整理或试试 AI 整理",
++            "这些素材没有可识别的特征，可以手动整理",
+         ));
+     }
+     let summary = format!("本地规则 · {} 条建议", entries.len());
+     create_proposal(&mut store, "rules", &summary, entries, json!({}))
+ }
+ 
+-#[tauri::command(rename_all = "camelCase")]
+-pub async fn propose_ai(
+-    state: State<'_, AppState>,
+-    ids: Option<Vec<String>>,
+-) -> ApiResult<AiProposeResult> {
+-    let (settings, categories, groups, batch, total, data_dir) = {
+-        let store = lock_store(&state)?;
+-        if !store.settings.ai.enabled {
+-            return Err(AppError::new("ai_disabled", "还没有开启 AI 整理，请先在设置中启用"));
+-        }
+-        let candidates = candidates(&store, ids);
+-        if candidates.is_empty() {
+-            return Err(AppError::new("empty", "没有需要整理的素材"));
+-        }
+-        let total = candidates.len();
+-        let batch: Vec<Sticker> = candidates
+-            .into_iter()
+-            .take(store.settings.ai.batch_size as usize)
+-            .collect();
+-        (
+-            store.settings.clone(),
+-            store.library.categories.clone(),
+-            store.library.groups.clone(),
+-            batch,
+-            total,
+-            store.data_dir.clone(),
+-        )
+-    };
+-    let mut items: Vec<(Sticker, String)> = Vec::new();
+-    for item in batch {
+-        let mut image = String::new();
+-        if settings.ai.vision {
+-            if let Ok(bytes) = fs::read(data_dir.join("thumbs").join(&item.sha256)) {
+-                let mime = if item.thumb_mime.is_empty() {
+-                    "image/webp"
+-                } else {
+-                    item.thumb_mime.as_str()
+-                };
+-                image = format!(
+-                    "data:{};base64,{}",
+-                    mime,
+-                    base64::engine::general_purpose::STANDARD.encode(bytes)
+-                );
+-            }
+-        }
+-        items.push((item, image));
+-    }
+-    let outcome = ai::request_ai(&settings, &categories, &groups, &items).await?;
+-    let plain_items: Vec<Sticker> = items.iter().map(|(item, _)| item.clone()).collect();
+-    let entries = ai::parse_ai_response(&outcome.content, &plain_items, &categories, &groups)?;
+-    if entries.is_empty() {
+-        return Err(AppError::new(
+-            "ai_empty",
+-            "AI 没有给出新的整理建议，可能这些素材已经足够整理好了",
+-        ));
+-    }
+-    let requested = items.len();
+-    let summary = format!("AI 整理 · {} 条建议 · {}", entries.len(), outcome.model);
+-    let mut store = lock_store(&state)?;
+-    let proposal = create_proposal(
+-        &mut store,
+-        "ai",
+-        &summary,
+-        entries,
+-        json!({
+-            "model": outcome.model,
+-            "usage": outcome.usage,
+-            "requested": requested,
+-        }),
+-    )?;
+-    Ok(AiProposeResult {
+-        proposal,
+-        requested,
+-        remaining: total.saturating_sub(requested),
+-        model: outcome.model,
+-        usage: outcome.usage,
+-    })
+-}
+-
+ #[tauri::command(rename_all = "camelCase")]
+ pub fn update_proposal(
+     state: State<'_, AppState>,
+@@ -888,22 +797,6 @@ pub fn save_settings(state: State<'_, AppState>, patch: Value) -> ApiResult<Sett
+     Ok(SettingsView::from(&store.settings))
+ }
+ 
+-#[tauri::command(rename_all = "camelCase")]
+-pub async fn test_ai(state: State<'_, AppState>, overrides: Option<Value>) -> ApiResult<String> {
+-    let settings = {
+-        let store = lock_store(&state)?;
+-        let mut settings = store.settings.clone();
+-        if let Some(overrides) = overrides {
+-            let mut patch = serde_json::Map::new();
+-            patch.insert("ai".to_string(), overrides);
+-            apply_settings_patch(&mut settings, &Value::Object(patch));
+-        }
+-        settings.normalize();
+-        settings
+-    };
+-    ai::test_connection(&settings).await
+-}
+-
+ // ------------------------------------------------------------------ helpers
+ 
+ fn candidates(store: &Store, ids: Option<Vec<String>>) -> Vec<Sticker> {
+@@ -1056,7 +949,7 @@ fn import_image_bytes(
+         usage_count: 0,
+         last_used_at: None,
+         origin: "import".to_string(),
+-        ai_note: String::new(),
++        organize_note: String::new(),
+     };
+     store.library.items.push(item.clone());
+     Ok(Some(item))
+@@ -1196,8 +1089,8 @@ fn apply_item_patch(
+     if let Some(value) = patch.get("favorite").and_then(Value::as_bool) {
+         item.favorite = value;
+     }
+-    if let Some(value) = patch.get("aiNote").and_then(Value::as_str) {
+-        item.ai_note = clean_text(value, 200);
++    if let Some(value) = patch.get("organizeNote").and_then(Value::as_str) {
++        item.organize_note = clean_text(value, 200);
+     }
+     let explicit_status = patch.get("status").and_then(Value::as_str).filter(|value| {
+         *value == "inbox" || *value == "sorted"
+@@ -1217,33 +1110,6 @@ fn apply_item_patch(
+ }
+ 
+ fn apply_settings_patch(settings: &mut Settings, patch: &Value) {
+-    if let Some(ai) = patch.get("ai") {
+-        if let Some(value) = ai.get("enabled").and_then(Value::as_bool) {
+-            settings.ai.enabled = value;
+-        }
+-        if let Some(value) = ai.get("baseUrl").and_then(Value::as_str) {
+-            settings.ai.base_url = clean_text(value, 300);
+-        }
+-        if let Some(value) = ai.get("model").and_then(Value::as_str) {
+-            settings.ai.model = clean_text(value, 120);
+-        }
+-        if let Some(value) = ai.get("vision").and_then(Value::as_bool) {
+-            settings.ai.vision = value;
+-        }
+-        if let Some(value) = ai.get("batchSize").and_then(Value::as_u64) {
+-            settings.ai.batch_size = value.clamp(1, 24) as u32;
+-        }
+-        if let Some(value) = ai.get("timeoutMs").and_then(Value::as_u64) {
+-            settings.ai.timeout_ms = value.clamp(10_000, 300_000);
+-        }
+-        if let Some(value) = ai.get("apiKey").and_then(Value::as_str) {
+-            if value == "__CLEAR__" {
+-                settings.ai.api_key.clear();
+-            } else if !value.trim().is_empty() {
+-                settings.ai.api_key = value.trim().to_string();
+-            }
+-        }
+-    }
+     if let Some(value) = patch.get("copyMode").and_then(Value::as_str) {
+         if value == "image" || value == "file" {
+             settings.copy_mode = value.to_string();
+diff --git a/a/src-tauri/src/history.rs b/b/src-tauri/src/history.rs
+index 35722cb..1676faa 100644
+--- a/a/src-tauri/src/history.rs
++++ b/b/src-tauri/src/history.rs
+@@ -25,7 +25,7 @@ pub fn snapshot(item: &Sticker) -> Snapshot {
+             "inbox".to_string()
+         },
+         deleted: item.deleted,
+-        ai_note: item.ai_note.clone(),
++        organize_note: item.organize_note.clone(),
+     }
+ }
+ 
+@@ -43,7 +43,7 @@ pub fn apply_snapshot(item: &mut Sticker, snapshot: &Snapshot) {
+     };
+     item.deleted = snapshot.deleted;
+     item.deleted_at = if snapshot.deleted { Some(now_ms()) } else { None };
+-    item.ai_note = snapshot.ai_note.clone();
++    item.organize_note = snapshot.organize_note.clone();
+ }
+ 
+ #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+diff --git a/a/src-tauri/src/lib.rs b/b/src-tauri/src/lib.rs
+index 15e46b0..2c7ff3a 100644
+--- a/a/src-tauri/src/lib.rs
++++ b/b/src-tauri/src/lib.rs
+@@ -1,4 +1,3 @@
+-mod ai;
+ mod backup;
+ mod clipboard;
+ mod commands;
+@@ -106,7 +105,6 @@ pub fn run() {
+             commands::update_group,
+             commands::delete_group,
+             commands::propose_rules,
+-            commands::propose_ai,
+             commands::update_proposal,
+             commands::apply_proposal,
+             commands::dismiss_proposal,
+@@ -120,7 +118,6 @@ pub fn run() {
+             commands::delete_backup,
+             commands::open_data_dir,
+             commands::save_settings,
+-            commands::test_ai,
+             commands::show_quick,
+             commands::quick_visible,
+             commands::quick_hotkey_registered,
+diff --git a/a/src-tauri/src/models.rs b/b/src-tauri/src/models.rs
+index 719db5b..7156218 100644
+--- a/a/src-tauri/src/models.rs
++++ b/b/src-tauri/src/models.rs
+@@ -122,7 +122,9 @@ pub struct Sticker {
+     pub usage_count: u32,
+     pub last_used_at: Option<i64>,
+     pub origin: String,
+-    pub ai_note: String,
++    /// 整理说明（旧字段名为 aiNote，保留别名以兼容既有数据）。
++    #[serde(alias = "aiNote")]
++    pub organize_note: String,
+ }
+ 
+ impl Default for Sticker {
+@@ -151,7 +153,7 @@ impl Default for Sticker {
+             usage_count: 0,
+             last_used_at: None,
+             origin: "import".to_string(),
+-            ai_note: String::new(),
++            organize_note: String::new(),
+         }
+     }
+ }
+@@ -261,7 +263,8 @@ pub struct Snapshot {
+     pub favorite: bool,
+     pub status: String,
+     pub deleted: bool,
+-    pub ai_note: String,
++    #[serde(alias = "aiNote")]
++    pub organize_note: String,
+ }
+ 
+ impl Default for Snapshot {
+@@ -275,7 +278,7 @@ impl Default for Snapshot {
+             favorite: false,
+             status: "inbox".to_string(),
+             deleted: false,
+-            ai_note: String::new(),
++            organize_note: String::new(),
+         }
+     }
+ }
+@@ -395,36 +398,9 @@ pub fn default_categories() -> Vec<Category> {
+     .collect()
+ }
+ 
+-#[derive(Debug, Clone, Serialize, Deserialize)]
+-#[serde(rename_all = "camelCase", default)]
+-pub struct AiConfig {
+-    pub enabled: bool,
+-    pub base_url: String,
+-    pub model: String,
+-    pub api_key: String,
+-    pub vision: bool,
+-    pub batch_size: u32,
+-    pub timeout_ms: u64,
+-}
+-
+-impl Default for AiConfig {
+-    fn default() -> Self {
+-        Self {
+-            enabled: false,
+-            base_url: "https://api.openai.com/v1".to_string(),
+-            model: "gpt-4o-mini".to_string(),
+-            api_key: String::new(),
+-            vision: true,
+-            batch_size: 12,
+-            timeout_ms: 120_000,
+-        }
+-    }
+-}
+-
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+ #[serde(rename_all = "camelCase", default)]
+ pub struct Settings {
+-    pub ai: AiConfig,
+     pub copy_mode: String,
+     pub card_size: u32,
+     pub auto_backup: bool,
+@@ -435,7 +411,6 @@ pub struct Settings {
+ impl Default for Settings {
+     fn default() -> Self {
+         Self {
+-            ai: AiConfig::default(),
+             copy_mode: "image".to_string(),
+             card_size: 150,
+             auto_backup: true,
+@@ -444,22 +419,9 @@ impl Default for Settings {
+     }
+ }
+ 
+-#[derive(Debug, Clone, Serialize)]
+-#[serde(rename_all = "camelCase")]
+-pub struct AiView {
+-    pub enabled: bool,
+-    pub base_url: String,
+-    pub model: String,
+-    pub vision: bool,
+-    pub batch_size: u32,
+-    pub timeout_ms: u64,
+-    pub has_api_key: bool,
+-}
+-
+ #[derive(Debug, Clone, Serialize)]
+ #[serde(rename_all = "camelCase")]
+ pub struct SettingsView {
+-    pub ai: AiView,
+     pub copy_mode: String,
+     pub card_size: u32,
+     pub auto_backup: bool,
+@@ -469,15 +431,6 @@ pub struct SettingsView {
+ impl From<&Settings> for SettingsView {
+     fn from(value: &Settings) -> Self {
+         Self {
+-            ai: AiView {
+-                enabled: value.ai.enabled,
+-                base_url: value.ai.base_url.clone(),
+-                model: value.ai.model.clone(),
+-                vision: value.ai.vision,
+-                batch_size: value.ai.batch_size,
+-                timeout_ms: value.ai.timeout_ms,
+-                has_api_key: !value.ai.api_key.is_empty(),
+-            },
+             copy_mode: value.copy_mode.clone(),
+             card_size: value.card_size,
+             auto_backup: value.auto_backup,
+@@ -498,21 +451,30 @@ pub struct StateView {
+     pub history_count: usize,
+ }
+ 
+-#[derive(Debug, Clone, Serialize)]
+-#[serde(rename_all = "camelCase")]
+-pub struct AiPreset {
+-    pub id: String,
+-    pub label: String,
+-    pub base_url: String,
+-    pub model: String,
+-    pub vision: bool,
+-}
+-
+ #[derive(Debug, Clone, Serialize)]
+ #[serde(rename_all = "camelCase")]
+ pub struct SystemInfo {
+     pub version: String,
+     pub platform: String,
+     pub data_dir: String,
+-    pub ai_presets: Vec<AiPreset>,
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn legacy_ai_note_is_read_and_saved_as_organize_note() {
++        let sticker: Sticker =
++            serde_json::from_value(serde_json::json!({ "name": "旧素材", "aiNote": "规则：测试" }))
++                .expect("旧 aiNote 应能反序列化");
++        assert_eq!(sticker.organize_note, "规则：测试");
++        let value = serde_json::to_value(&sticker).expect("serialize");
++        assert_eq!(value["organizeNote"], "规则：测试");
++        assert!(value.get("aiNote").is_none());
++
++        let snapshot: Snapshot =
++            serde_json::from_value(serde_json::json!({ "aiNote": "旧说明" })).expect("旧快照应能反序列化");
++        assert_eq!(snapshot.organize_note, "旧说明");
++    }
+ }
+diff --git a/a/src-tauri/src/organize.rs b/b/src-tauri/src/organize.rs
+index 944c040..d489ca5 100644
+--- a/a/src-tauri/src/organize.rs
++++ b/b/src-tauri/src/organize.rs
+@@ -85,7 +85,7 @@ pub fn create_proposal(
+     }
+     store.log(
+         "proposal.create",
+-        if kind == "ai" { "ai" } else { "rules" },
++        "rules",
+         format!("生成整理建议：{}", proposal.summary),
+         false,
+         Vec::new(),
+@@ -382,7 +382,7 @@ pub fn apply_proposal(
+             if item.category_id.is_some() || !item.group_ids.is_empty() {
+                 item.status = "sorted".to_string();
+             }
+-            item.ai_note = clean_text(&note, 200);
++            item.organize_note = clean_text(&note, 200);
+         }
+ 
+         let after = snapshot(&store.library.items[item_index]);
+@@ -548,17 +548,17 @@ mod tests {
+         let item_id = seed_item(&mut store, "测试表情");
+         let proposal = create_proposal(
+             &mut store,
+-            "ai",
++            "rules",
+             "测试覆盖",
+             vec![DraftEntry {
+                 item_id,
+                 action: Action {
+-                    new_category_name: "AI 分类".to_string(),
++                    new_category_name: "规则 分类".to_string(),
+                     ..Action::default()
+                 },
+                 reason: "测试".to_string(),
+                 confidence: 0.9,
+-                source: "ai".to_string(),
++                source: "rules".to_string(),
+             }],
+             serde_json::json!({}),
+         )
+diff --git a/a/src-tauri/src/store.rs b/b/src-tauri/src/store.rs
+index 9053ad7..8d9e4c5 100644
+--- a/a/src-tauri/src/store.rs
++++ b/b/src-tauri/src/store.rs
+@@ -262,15 +262,6 @@ impl Library {
+ 
+ impl Settings {
+     pub fn normalize(&mut self) {
+-        if self.ai.base_url.trim().is_empty() {
+-            self.ai.base_url = "https://api.openai.com/v1".to_string();
+-        }
+-        self.ai.base_url = self.ai.base_url.trim_end_matches('/').to_string();
+-        if self.ai.model.trim().is_empty() {
+-            self.ai.model = "gpt-4o-mini".to_string();
+-        }
+-        self.ai.batch_size = self.ai.batch_size.clamp(1, 24);
+-        self.ai.timeout_ms = self.ai.timeout_ms.clamp(10_000, 300_000);
+         if !["image", "file"].contains(&self.copy_mode.as_str()) {
+             self.copy_mode = "image".to_string();
+         }

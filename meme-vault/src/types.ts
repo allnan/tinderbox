@@ -41,7 +41,8 @@ export interface Sticker {
   usageCount: number;
   lastUsedAt: number | null;
   origin: string;
-  aiNote: string;
+  /** 整理说明；旧数据里的 aiNote 由后端别名兼容读取。 */
+  organizeNote: string;
 }
 
 export interface ProposalAction {
@@ -70,6 +71,7 @@ export type ProposalStatus = "pending" | "applied" | "dismissed" | "reverted" | 
 
 export interface Proposal {
   id: string;
+  /** "ai" 仅用于兼容旧建议数据，当前版本只生成 "rules"。 */
   kind: "rules" | "ai";
   status: ProposalStatus;
   summary: string;
@@ -93,7 +95,7 @@ export interface Snapshot {
   favorite: boolean;
   status: StickerStatus;
   deleted: boolean;
-  aiNote: string;
+  organizeNote: string;
 }
 
 export interface HistoryChange {
@@ -106,6 +108,7 @@ export interface HistoryEntry {
   id: string;
   at: number;
   type: string;
+  /** "ai" 仅用于显示旧记录。 */
   actor: "user" | "ai" | "rules" | "system" | string;
   summary: string;
   undoable: boolean;
@@ -123,38 +126,17 @@ export interface HistoryPage {
   items: HistoryItemView[];
 }
 
-export interface AiSettings {
-  enabled: boolean;
-  baseUrl: string;
-  model: string;
-  apiKey: string;
-  vision: boolean;
-  batchSize: number;
-  timeoutMs: number;
-  hasApiKey: boolean;
-}
-
 export interface SettingsView {
-  ai: AiSettings;
   copyMode: "image" | "file";
   cardSize: number;
   autoBackup: boolean;
   quickAlwaysOnTop: boolean;
 }
 
-export interface AiPreset {
-  id: string;
-  label: string;
-  baseUrl: string;
-  model: string;
-  vision: boolean;
-}
-
 export interface SystemInfo {
   version: string;
   platform: string;
   dataDir: string;
-  aiPresets: AiPreset[];
 }
 
 export interface LibraryMeta {
@@ -194,14 +176,6 @@ export interface ImportBackupReport {
   groupsAdded: number;
   historyArchived: string | null;
   historyEntryId: string | null;
-}
-
-export interface AiProposeResult {
-  proposal: Proposal;
-  requested: number;
-  remaining: number;
-  model: string;
-  usage: unknown;
 }
 
 export interface RevertResult {
